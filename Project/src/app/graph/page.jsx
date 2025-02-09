@@ -156,7 +156,7 @@ const DnDFlow = () => {
           label: (
             <div
               className="flex items-center gap-1 flex-start"
-              // onClick={() => clickNode(type, getId())}
+            // onClick={() => clickNode(type, getId())}
             >
               {type == "phone" && <FaPhoneAlt className={"node_icon"} />}
               {type == "email" && (
@@ -385,7 +385,7 @@ const DnDFlow = () => {
             connectionLineComponent={CustomConnectionLine}
             connectionLineStyle={connectionLineStyle}
             edgeTypes={edgeTypes}
-            // nodeTypes={nodeTypes}
+          // nodeTypes={nodeTypes}
           >
             {/* <LayoutToggle /> */}
             <Panel position="top-left">

@@ -25,18 +25,17 @@ export async function GET(request) {
 
         // Fetch Instagram Data
         const instagramResponse = await axios.get(
-            `https://instagram28.p.rapidapi.com/search?search=${query}`,
+            `https://instagram-scraper-api2.p.rapidapi.com/v1/search_users?search_query=${query}`,
             {
                 headers: {
-                    "x-rapidapi-host": "instagram28.p.rapidapi.com",
+                    "x-rapidapi-host": "instagram-scraper-api2.p.rapidapi.com",
                     "x-rapidapi-key": apiKey,
                 },
             }
         );
 
         const facebookUsers = facebookResponse.data?.data?.items || [];
-        const instagramUsers =
-            instagramResponse.data?.data?.xdt_api__v1__fbsearch__topsearch_connection?.users || [];
+        const instagramUsers = instagramResponse.data?.data?.items || [];
 
         return NextResponse.json({ facebookUsers, instagramUsers });
     } catch (error) {

@@ -2,6 +2,8 @@
 
 import { MdKeyboardArrowDown } from "react-icons/md";
 
+import Link from "next/link";
+
 const Navbar = () => {
   return (
     <nav
@@ -10,7 +12,7 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo Section */}
-        <div className="flex items-center space-x-2">
+        <Link href='/' className="flex items-center space-x-2">
           <div className="bg-white w-8 h-8 rounded-full flex items-center justify-center">
             <span className="text-black font-bold text-xl">P</span>
           </div>
@@ -22,11 +24,14 @@ const Navbar = () => {
               GRAPH
             </p>
           </div>
-        </div>
+        </Link>
 
         <div className="flex items-center justify-between gap-12">
           {/* Menu Items */}
           <div className="hidden md:flex text-gray-300 gap-12">
+            <a href="/search-people" className="hover:text-white">
+              Search
+            </a>
             <a href="/pricing" className="hover:text-white">
               Pricing
             </a>

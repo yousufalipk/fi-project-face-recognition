@@ -79,8 +79,6 @@ export async function POST(req) {
             console.error("Error cleaning up images:", error);
         }
 
-
-        // console.log('==================>Result', result);
         return NextResponse.json({ message: result });
     } catch (error) {
         console.error("Error in face matching API:", error);
