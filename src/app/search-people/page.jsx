@@ -56,6 +56,8 @@ const SearchPeoplePage = () => {
         try {
             setLoading(true);
 
+            setResults([]);
+
             if (!searchTerm && !file) {
                 toast.error('Username & Image is required!');
                 return;
