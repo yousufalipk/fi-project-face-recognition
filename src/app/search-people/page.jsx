@@ -93,16 +93,12 @@ const SearchPeoplePage = () => {
 
             const data = await res.json();
 
-
-            console.log('======> Data', data);
-
             if (data.success) {
-                console.log('index', data.index);
                 toast.success('Match found!');
-                const parsedIndex = parseInt(data.index, 10);
+                const parsedIndex = parseInt(data.file_name, 10);
                 setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
             } else {
-                toast.error('No match found!, Try uploading a clear picture!');
+                toast.error('No match found!');
             }
         } catch (error) {
             console.log('Internal Server Error!', error);

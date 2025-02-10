@@ -1,31 +1,29 @@
-import { spawn } from "child_process";
-import { writeFile, unlink, readdir } from "fs/promises";
-import { NextResponse } from "next/server";
-import path from "path";
-import fs from "fs";
-import fetch from "node-fetch";
+import { spawn } from 'child_process';
+import { writeFile, unlink, readdir } from 'fs/promises';
+import path from 'path';
+import fs from 'fs';
+import fetch from 'node-fetch';
+import { NextResponse } from 'next/server';
 
 export async function POST(req) {
     try {
         const data = await req.formData();
-        const file = data.get("file");
-        const accounts = JSON.parse(data.get("accounts") || "[]");
+        const file = data.get('file');
+        const accounts = JSON.parse(data.get('accounts') || '[]');
 
-        if (!file) return NextResponse.json({ message: "No file uploaded", success: false });
+        if (!file) {
+            return NextResponse.json({ message: 'No file uploaded', success: false }, { status: 400 });
+        }
 
-        // Define paths
-        const imagesDir = path.join(process.cwd(), "public", "images");
-        const userImageDir = path.join(process.cwd(), "public", "userImage");
-        const userImagePath = path.join(userImageDir, "userImage.jpg");
+        const imagesDir = path.join(process.cwd(), 'public', 'images');
+        const userImageDir = path.join(process.cwd(), 'public', 'userImage');
+        const userImagePath = path.join(userImageDir, 'userImage.jpg');
 
-        // Ensure directories exist
         if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
         if (!fs.existsSync(userImageDir)) fs.mkdirSync(userImageDir, { recursive: true });
 
-        const imagePaths = [];
         let index = 0;
 
-        // Download account images
         for (const user of accounts) {
             const imageUrl = user.image?.uri || user?.profile_pic_url;
             if (!imageUrl) continue;
@@ -38,7 +36,6 @@ export async function POST(req) {
                 const userImageBuffer = Buffer.from(arrayBuffer);
                 const imagePath = path.join(imagesDir, `${index}.jpg`);
                 await writeFile(imagePath, userImageBuffer);
-                imagePaths.push(imagePath);
 
                 index++;
             } catch (error) {
@@ -46,60 +43,51 @@ export async function POST(req) {
             }
         }
 
-        // Save uploaded image after processing account images
         const uploadedBytes = await file.arrayBuffer();
         const uploadedBuffer = Buffer.from(uploadedBytes);
         await writeFile(userImagePath, uploadedBuffer);
 
-        console.log('Images Downloaded Succesfully!');
+        const scriptPath = path.join(process.cwd(), 'scripts', 'facenet_match.py');
 
-        // Call Python script
-        const result = await new Promise((resolve) => {
-            const pythonProcess = spawn("python", ["scripts/facenet_match.py"]);
+        const result = await new Promise((resolve, reject) => {
+            const pythonProcess = spawn('python', [scriptPath]);
 
-            let output = "";
-            pythonProcess.stdout.on("data", (data) => {
-                output += data.toString();
+            let scriptOutput = '';
+            let scriptError = '';
+
+            pythonProcess.stdout.on('data', (data) => {
+                scriptOutput += data.toString();
             });
 
-            pythonProcess.stderr.on("data", (data) => {
-                console.error(`Python Error: ${data}`);
+            pythonProcess.stderr.on('data', (data) => {
+                scriptError += data.toString();
             });
 
-            pythonProcess.on("close", () => {
-                const trimmedOutput = output.trim();
-
-                console.log('Trimmed Output', trimmedOutput);
-
-                if (trimmedOutput.startsWith("Success:")) {
-                    const matchIndex = parseInt(trimmedOutput.match(/\d+/)?.[0] || "-1", 10);
-                    resolve({ success: true, message: "Match found successfully!", index: matchIndex });
-                } else if (trimmedOutput.startsWith("Error:")) {
-                    resolve({ success: false, message: trimmedOutput.replace("Error: ", ""), index: null });
+            pythonProcess.on('close', (code) => {
+                if (code !== 0) {
+                    reject(new Error(`Python script exited with code ${code}: ${scriptError}`));
                 } else {
-                    resolve({ success: false, message: "Unknown error occurred", index: null });
+                    try {
+                        resolve(JSON.parse(scriptOutput));
+                    } catch (parseError) {
+                        reject(new Error(`Parse Error: ${parseError.message}`));
+                    }
                 }
             });
         });
 
-        // Cleanup: Delete all images in "images" folder + userImage.jpg
-        try {
-            const files = await readdir(imagesDir);
-            for (const file of files) {
-                await unlink(path.join(imagesDir, file));
-            }
-
-            if (fs.existsSync(userImagePath)) {
-                await unlink(userImagePath);
-                console.log("Deleted userImage.jpg");
-            }
-        } catch (error) {
-            console.error("Error cleaning up images:", error);
+        const files = await readdir(imagesDir);
+        for (const file of files) {
+            await unlink(path.join(imagesDir, file));
         }
 
-        return NextResponse.json(result);
+        if (fs.existsSync(userImagePath)) {
+            await unlink(userImagePath);
+        }
+
+        return NextResponse.json(result, { status: 200 });
     } catch (error) {
-        console.error("Error in face matching API:", error);
-        return NextResponse.json({ message: "An error occurred", success: false }, { status: 500 });
+        console.error('Error in face matching API:', error);
+        return NextResponse.json({ message: 'An error occurred', success: false }, { status: 500 });
     }
 }
