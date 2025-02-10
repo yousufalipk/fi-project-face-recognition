@@ -1,8 +1,9 @@
-import sys
-import os
-import cv2
-import numpy as np
-from deepface import DeepFace
+import os  
+import sys   
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  
+import cv2  
+import numpy as np  
+from deepface import DeepFace  
 
 if len(sys.argv) < 2:
     print("Error: No image provided. Usage: python script.py <image_path>")
