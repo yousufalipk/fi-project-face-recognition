@@ -1,13 +1,12 @@
 import os
 import sys
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
 import cv2
 import numpy as np
 from deepface import DeepFace
+
+# Disable GPU for compatibility
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 if len(sys.argv) < 2:
     print("Error: No image provided. Usage: python script.py <image_path>")
@@ -19,6 +18,17 @@ database_path = "public/images"
 if not os.path.exists(uploaded_img_path):
     print("Error: Uploaded image not found.")
     sys.exit(1)
+
+
+def load_and_validate_image(image_path):
+    """Loads an image and validates if it is readable."""
+    img = cv2.imread(image_path)
+    if img is None:
+        return None
+    img = cv2.resize(img, (160, 160))  # Resize to standard model input
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB format
+    return img
+
 
 def detect_faces(image_path):
     """Detects faces in an image using OpenCV's Haar Cascade."""
@@ -35,8 +45,8 @@ def detect_faces(image_path):
         print(f"Error in face detection: {e}")
         return []
 
-faces_detected = detect_faces(uploaded_img_path)
 
+faces_detected = detect_faces(uploaded_img_path)
 if len(faces_detected) == 0:
     print("Error: No face detected. Upload a valid face image.")
     sys.exit(1)
@@ -53,16 +63,20 @@ matched_username = ""
 
 for filename in os.listdir(database_path):
     db_image_path = os.path.join(database_path, filename)
-
     if not filename.lower().endswith((".jpg", ".jpeg", ".png")):
+        continue
+
+    db_img = load_and_validate_image(db_image_path)
+    if db_img is None:
+        print(f"Skipping invalid image: {filename}")
         continue
 
     try:
         result = DeepFace.verify(img1_path=uploaded_img_path, img2_path=db_image_path, model_name="Facenet")
         if result.get("verified"):
-            matched_username = os.path.splitext(filename)[0]  
+            matched_username = os.path.splitext(filename)[0]
             found_match = True
-            break 
+            break
     except Exception as e:
         print(f"Error processing {filename}: {e}")
         continue
