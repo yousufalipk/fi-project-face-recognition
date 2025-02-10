@@ -73,6 +73,8 @@ const SearchPeoplePage = () => {
 
             let accounts = [...result.facebookUsers, ...result.instagramUsers];
 
+            console.log('======> Accounts', accounts);
+
             const formData = new FormData();
             formData.append("file", file);
             formData.append("accounts", JSON.stringify(accounts));
@@ -88,6 +90,10 @@ const SearchPeoplePage = () => {
             }
 
             const data = await res.json();
+
+
+            console.log('======> Data', data);
+
             if (data.message) {
                 toast.success('Match found!');
                 const parsedIndex = parseInt(data.message.username, 10);

@@ -1,9 +1,13 @@
-import os  
-import sys   
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  
-import cv2  
-import numpy as np  
-from deepface import DeepFace  
+import os
+import sys
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+import cv2
+import numpy as np
+from deepface import DeepFace
 
 if len(sys.argv) < 2:
     print("Error: No image provided. Usage: python script.py <image_path>")
@@ -17,6 +21,7 @@ if not os.path.exists(uploaded_img_path):
     sys.exit(1)
 
 def detect_faces(image_path):
+    """Detects faces in an image using OpenCV's Haar Cascade."""
     try:
         img = cv2.imread(image_path)
         if img is None:
@@ -27,9 +32,11 @@ def detect_faces(image_path):
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
         return faces
     except Exception as e:
+        print(f"Error in face detection: {e}")
         return []
 
 faces_detected = detect_faces(uploaded_img_path)
+
 if len(faces_detected) == 0:
     print("Error: No face detected. Upload a valid face image.")
     sys.exit(1)
@@ -57,8 +64,10 @@ for filename in os.listdir(database_path):
             found_match = True
             break 
     except Exception as e:
+        print(f"Error processing {filename}: {e}")
         continue
 
+# Output result
 if found_match:
     print(matched_username)
 else:
