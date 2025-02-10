@@ -69,7 +69,9 @@ export async function POST(req) {
             });
         });
 
+
         // Cleanup: Delete all downloaded images
+        /*
         try {
             const files = await readdir(imagesDir);
             for (const file of files) {
@@ -78,6 +80,7 @@ export async function POST(req) {
         } catch (error) {
             console.error("Error cleaning up images:", error);
         }
+            */
 
         return NextResponse.json({ message: result });
     } catch (error) {

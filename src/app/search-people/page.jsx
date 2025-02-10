@@ -94,7 +94,7 @@ const SearchPeoplePage = () => {
 
             console.log('======> Data', data);
 
-            if (data.message) {
+            if (data.message && data.username) {
                 toast.success('Match found!');
                 const parsedIndex = parseInt(data.message.username, 10);
                 setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
