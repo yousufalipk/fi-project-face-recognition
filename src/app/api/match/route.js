@@ -28,7 +28,7 @@ export async function POST(req) {
 
         let index = 0;
         for (const user of accounts) {
-            const imageUrl = user.image?.uri || user?.user?.profile_pic_url;
+            const imageUrl = user.image?.uri || user?.profile_pic_url;
             if (!imageUrl) continue;
 
             try {
@@ -71,7 +71,6 @@ export async function POST(req) {
 
 
         // Cleanup: Delete all downloaded images
-        /*
         try {
             const files = await readdir(imagesDir);
             for (const file of files) {
@@ -80,7 +79,6 @@ export async function POST(req) {
         } catch (error) {
             console.error("Error cleaning up images:", error);
         }
-            */
 
         return NextResponse.json({ message: result });
     } catch (error) {
