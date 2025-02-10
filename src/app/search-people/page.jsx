@@ -94,12 +94,13 @@ const SearchPeoplePage = () => {
 
             console.log('======> Data', data);
 
-            if (data.message) {
+            if (data.success) {
+                console.log('index', data.index);
                 toast.success('Match found!');
-                const parsedIndex = parseInt(data.message.username, 10);
+                const parsedIndex = parseInt(data.index, 10);
                 setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
             } else {
-                toast.error('No match found!');
+                toast.error('No match found!, Try uploading a clear picture!');
             }
         } catch (error) {
             console.log('Internal Server Error!', error);

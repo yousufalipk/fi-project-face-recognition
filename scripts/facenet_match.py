@@ -1,66 +1,70 @@
-import sys
 import os
 import cv2
+import sys
 import numpy as np
 from deepface import DeepFace
 
-if len(sys.argv) < 2:
-    print("Error: No image provided. Usage: python script.py <image_path>")
+user_image_path = "./public/userImage/userImage.jpg"
+images_folder = "./public/images"
+
+# Validate user image
+if not os.path.exists(user_image_path):
+    print("Error: User image not found.")
     sys.exit(1)
 
-uploaded_img_path = sys.argv[1]
-database_path = "public/images"
-
-if not os.path.exists(uploaded_img_path):
-    print("Error: Uploaded image not found.")
+if not os.path.isdir(images_folder):
+    print("Error: Images directory does not exist.")
     sys.exit(1)
 
 def detect_faces(image_path):
+    """Detects faces in the given image using OpenCV."""
     try:
         img = cv2.imread(image_path)
         if img is None:
-            return []
+            return "Error: Could not read user image."
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-        return faces
+
+        if len(faces) == 0:
+            return "Error: No face detected in user image. Upload a valid face image."
+        elif len(faces) > 1:
+            return "Error: Multiple faces detected in user image. Upload a single-person image."
+
+        return None  
+
     except Exception as e:
-        return []
+        return f"Error during face detection: {str(e)}"
 
-faces_detected = detect_faces(uploaded_img_path)
-if len(faces_detected) == 0:
-    print("Error: No face detected. Upload a valid face image.")
-    sys.exit(1)
-elif len(faces_detected) > 1:
-    print("Error: Multiple faces detected. Upload a single-person image.")
+# Check user image validity
+error_message = detect_faces(user_image_path)
+if error_message:
+    print(error_message)
     sys.exit(1)
 
-if not os.path.isdir(database_path):
-    print("Error: Database directory does not exist.")
-    sys.exit(1)
+# Match user image with stored images
+match_found = False
+matched_filename = None
 
-found_match = False
-matched_username = ""
-
-for filename in os.listdir(database_path):
-    db_image_path = os.path.join(database_path, filename)
+for filename in sorted(os.listdir(images_folder)):
+    image_path = os.path.join(images_folder, filename)
 
     if not filename.lower().endswith((".jpg", ".jpeg", ".png")):
         continue
 
     try:
-        result = DeepFace.verify(img1_path=uploaded_img_path, img2_path=db_image_path, model_name="Facenet")
+        result = DeepFace.verify(img1_path=user_image_path, img2_path=image_path, model_name="Facenet")
         if result.get("verified"):
-            matched_username = os.path.splitext(filename)[0]  
-            found_match = True
-            break 
+            print(f"Success: Match found successfully! Filename: {filename}")
+            match_found = True
+            matched_filename = filename
+            break
     except Exception as e:
+        print(f"Warning: Error processing '{filename}': {e}")
         continue
 
-if found_match:
-    print(matched_username)
-else:
-    print("No match found")
+if not match_found:
+    print("Error: No match found.")
 
 sys.exit(0)
