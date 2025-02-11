@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { toast } from "react-toastify";
+import axios from 'axios';
 
 // Icons Import from react-icons
 import { FaImage } from "react-icons/fa";
@@ -18,16 +19,15 @@ import Footer from '@/components/Footer';
 
 const SearchPeoplePage = () => {
 
+    const TESTING_MODE = false;
+    const APITOKEN = process.env.NEXT_PUBLIC_APITOKEN;
+
     const [fileName, setFileName] = useState("");
     const [file, setFile] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [results, setResults] = useState([]);
     const [recentResults, setRecentResults] = useState([]);
     const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        console.log('Results ======> ', results);
-    }, [results])
 
     useEffect(() => {
         if (results.length > 0 && !searchTerm) {
@@ -39,6 +39,60 @@ const SearchPeoplePage = () => {
             setResults([]);
         }
     }, [searchTerm]);
+
+    const search_by_face = async (image_file) => {
+        if (TESTING_MODE) {
+            console.log('****** TESTING MODE search, results are inaccurate, and queue wait is long, but credits are NOT deducted ******');
+        }
+
+        console.log('ApiToken', APITOKEN);
+
+        const site = 'https://facecheck.id';
+        const headers = {
+            accept: 'application/json',
+            Authorization: APITOKEN,
+        };
+
+        let form = new FormData();
+        form.append('images', image_file);
+        form.append('id_search', '');
+
+        let response = await axios.post(`${site}/api/upload_pic`, form, {
+            headers: {
+                accept: 'application/json',
+                Authorization: APITOKEN
+            }
+        });
+
+        response = response.data;
+
+        if (response.error) {
+            return [`${response.error} (${response.code})`, null];
+        }
+
+        const id_search = response.id_search;
+        console.log(`${response.message} id_search=${id_search}`);
+
+        const json_data = {
+            id_search: id_search,
+            with_progress: true,
+            status_only: false,
+            demo: TESTING_MODE,
+        };
+
+        while (true) {
+            response = await axios.post(`${site}/api/search`, json_data, { headers });
+            response = response.data;
+            if (response.error) {
+                return [`${response.error} (${response.code})`, null];
+            }
+            if (response.output) {
+                return [null, response.output.items];
+            }
+            console.log(`${response.message} progress: ${response.progress}%`);
+            await new Promise(r => setTimeout(r, 1000));
+        }
+    };
 
 
     const handleFileChange = (event) => {
@@ -76,6 +130,30 @@ const SearchPeoplePage = () => {
             let accounts = [...result.facebookUsers, ...result.instagramUsers];
 
             console.log('======> Accounts', accounts);
+
+            if (accounts.length === 0) {
+                console.log('No accounts found. Trying facial recognition search...');
+
+                const [error, urls_images] = await search_by_face(file);
+
+                if (error) {
+                    toast.error('Face search failed: ' + error);
+                    return;
+                }
+
+                accounts = urls_images.map(im => ({
+                    score: im.score,
+                    url: im.url,
+                    image: `data:image/jpeg;base64,${im.base64}`,
+                }));
+
+                console.log('Facial search accounts:', accounts);
+            }
+
+            if (accounts.length === 0) {
+                toast.error('No match found!');
+                return;
+            }
 
             const formData = new FormData();
             formData.append("file", file);
@@ -184,7 +262,7 @@ const SearchPeoplePage = () => {
                                         <div className='w-1/2 h-full flex justify-end items-center mr-5'>
                                             <button
                                                 onClick={() => {
-                                                    window.open(user?.profile_url || user.profile_pic_url, "_blank");
+                                                    window.open(user?.profile_url || `https://www.instagram.com/${user.username}`, "_blank");
                                                 }}
                                                 className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
                                             >
@@ -251,7 +329,7 @@ const SearchPeoplePage = () => {
                                         <div className='w-1/2 h-full flex justify-end items-center mr-5'>
                                             <button
                                                 onClick={() => {
-                                                    window.open(user?.profile_url || user.profile_pic_url, "_blank");
+                                                    window.open(user?.profile_url || `https://www.instagram.com/${user.username}`, "_blank");
                                                 }}
                                                 className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
                                             >
