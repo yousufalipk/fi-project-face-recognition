@@ -19,9 +19,6 @@ import Footer from '@/components/Footer';
 
 const SearchPeoplePage = () => {
 
-    const TESTING_MODE = false;
-    const APITOKEN = process.env.NEXT_PUBLIC_APITOKEN;
-
     const [fileName, setFileName] = useState("");
     const [file, setFile] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -39,60 +36,6 @@ const SearchPeoplePage = () => {
             setResults([]);
         }
     }, [searchTerm]);
-
-    const search_by_face = async (image_file) => {
-        if (TESTING_MODE) {
-            console.log('****** TESTING MODE search, results are inaccurate, and queue wait is long, but credits are NOT deducted ******');
-        }
-
-        console.log('ApiToken', APITOKEN);
-
-        const site = 'https://facecheck.id';
-        const headers = {
-            accept: 'application/json',
-            Authorization: APITOKEN,
-        };
-
-        let form = new FormData();
-        form.append('images', image_file);
-        form.append('id_search', '');
-
-        let response = await axios.post(`${site}/api/upload_pic`, form, {
-            headers: {
-                accept: 'application/json',
-                Authorization: APITOKEN
-            }
-        });
-
-        response = response.data;
-
-        if (response.error) {
-            return [`${response.error} (${response.code})`, null];
-        }
-
-        const id_search = response.id_search;
-        console.log(`${response.message} id_search=${id_search}`);
-
-        const json_data = {
-            id_search: id_search,
-            with_progress: true,
-            status_only: false,
-            demo: TESTING_MODE,
-        };
-
-        while (true) {
-            response = await axios.post(`${site}/api/search`, json_data, { headers });
-            response = response.data;
-            if (response.error) {
-                return [`${response.error} (${response.code})`, null];
-            }
-            if (response.output) {
-                return [null, response.output.items];
-            }
-            console.log(`${response.message} progress: ${response.progress}%`);
-            await new Promise(r => setTimeout(r, 1000));
-        }
-    };
 
 
     const handleFileChange = (event) => {
@@ -122,38 +65,43 @@ const SearchPeoplePage = () => {
             const result = await response.json();
 
             if (!response.ok) {
-                console.log('Error searching accounts!');
                 toast.error('Error searching accounts!');
                 return;
             }
 
             let accounts = [...result.facebookUsers, ...result.instagramUsers];
 
-            console.log('======> Accounts', accounts);
-
             if (accounts.length === 0) {
-                console.log('No accounts found. Trying facial recognition search...');
+                const formData = new FormData();
+                formData.append('file', file);
 
-                const [error, urls_images] = await search_by_face(file);
+                try {
+                    const faceSearchResponse = await fetch('/api/reverse-face-search', {
+                        method: 'POST',
+                        body: formData,
+                    });
 
-                if (error) {
-                    toast.error('Face search failed: ' + error);
-                    return;
+                    if (!faceSearchResponse.ok) {
+                        toast.error('Error searching accounts!');
+                        return;
+                    }
+
+                    const result = await faceSearchResponse.json();
+                    console.log('====> Face search result:', result.accounts);
+                    accounts = result.accounts;
+
+                } catch (error) {
+                    console.error('Error in face search request:', error);
+                    toast.error('An unexpected error occurred!');
                 }
-
-                accounts = urls_images.map(im => ({
-                    score: im.score,
-                    url: im.url,
-                    image: `data:image/jpeg;base64,${im.base64}`,
-                }));
-
-                console.log('Facial search accounts:', accounts);
             }
 
+            /*
             if (accounts.length === 0) {
                 toast.error('No match found!');
                 return;
             }
+                */
 
             const formData = new FormData();
             formData.append("file", file);
@@ -244,15 +192,15 @@ const SearchPeoplePage = () => {
                                     >
                                         <div className='w-1/2 h-full flex justify-start items-center gap-5'>
                                             <Image
-                                                src={`${user?.image?.uri || user.profile_pic_url}`}
-                                                alt='profile_pic'
+                                                src={user?.image?.uri || user?.profile_pic_url || user?.image}
+                                                alt="profile_pic"
                                                 width={50}
                                                 height={50}
-                                                className='rounded-full overflow-hidden'
+                                                className="rounded-full overflow-hidden"
                                             />
                                             <div className='w-[20vw] flex flex-col justify-center items-start'>
                                                 <h1 className='text-start font-semibold'>
-                                                    {user?.name || user.full_name}
+                                                    {user?.name || user.full_name || ''}
                                                 </h1>
                                                 <p className='text-start text-neutral-500 flex justify-start items-center gap-1'>
                                                     rank {index + 1}, type {user?.image ? <FaFacebookSquare size={20} /> : <FaInstagramSquare size={20} />}
@@ -262,7 +210,12 @@ const SearchPeoplePage = () => {
                                         <div className='w-1/2 h-full flex justify-end items-center mr-5'>
                                             <button
                                                 onClick={() => {
-                                                    window.open(user?.profile_url || `https://www.instagram.com/${user.username}`, "_blank");
+                                                    const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
+                                                    if (url) {
+                                                        window.open(url, "_blank");
+                                                    } else {
+                                                        console.error("No valid URL found for user.");
+                                                    }
                                                 }}
                                                 className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
                                             >
@@ -311,15 +264,15 @@ const SearchPeoplePage = () => {
                                     >
                                         <div className='w-1/2 h-full flex justify-start items-center gap-5'>
                                             <Image
-                                                src={`${user?.image?.uri || user.profile_pic_url}`}
-                                                alt='profile_pic'
+                                                src={user?.image?.uri || user?.profile_pic_url || user?.image}
+                                                alt="profile_pic"
                                                 width={50}
                                                 height={50}
-                                                className='rounded-full overflow-hidden'
+                                                className="rounded-full overflow-hidden"
                                             />
                                             <div className='w-[20vw] flex flex-col justify-center items-start'>
                                                 <h1 className='text-start font-semibold'>
-                                                    {user?.name || user.full_name}
+                                                    {user?.name || user.full_name || ''}
                                                 </h1>
                                                 <p className='text-start text-neutral-500'>
                                                     rank {index + 1}, type {user?.image ? <FaFacebookSquare /> : <FaInstagramSquare />}
@@ -329,7 +282,12 @@ const SearchPeoplePage = () => {
                                         <div className='w-1/2 h-full flex justify-end items-center mr-5'>
                                             <button
                                                 onClick={() => {
-                                                    window.open(user?.profile_url || `https://www.instagram.com/${user.username}`, "_blank");
+                                                    const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
+                                                    if (url) {
+                                                        window.open(url, "_blank");
+                                                    } else {
+                                                        console.error("No valid URL found for user.");
+                                                    }
                                                 }}
                                                 className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
                                             >

@@ -39,7 +39,7 @@ export async function GET(request) {
 
         return NextResponse.json({ facebookUsers, instagramUsers });
     } catch (error) {
-        console.error("API Error:", error.message);
+        console.error("API Error:", error);
         return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
     }
 }

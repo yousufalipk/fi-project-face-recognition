@@ -25,7 +25,7 @@ export async function POST(req) {
         let index = 0;
 
         for (const user of accounts) {
-            const imageUrl = user.image?.uri || user?.profile_pic_url;
+            const imageUrl = user.image?.uri || user?.profile_pic_url || user.image;
             if (!imageUrl) continue;
 
             try {

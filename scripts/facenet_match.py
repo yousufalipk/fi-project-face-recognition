@@ -8,20 +8,28 @@ USER_IMAGE_PATH = "public/userImage/userImage.jpg"
 IMAGES_FOLDER = "public/images"
 
 def preprocess_image(image_path):
-    """Load and preprocess an image to enhance face recognition."""
+    """Load and preprocess an image to enhance face recognition in blurry images."""
     image = cv2.imread(image_path)
     if image is None:
         return None
-    
+
+    # Convert to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    equalized = cv2.equalizeHist(gray)
-    
-    enhanced_image = cv2.cvtColor(equalized, cv2.COLOR_GRAY2BGR)
-    
+
+    # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
+
+    # Convert back to BGR for face recognition compatibility
+    enhanced_image = cv2.cvtColor(enhanced, cv2.COLOR_GRAY2BGR)
+
+    # Apply bilateral filter to reduce noise while keeping edges sharp
+    filtered_image = cv2.bilateralFilter(enhanced_image, d=9, sigmaColor=75, sigmaSpace=75)
+
+    # Sharpening Kernel
     kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-    sharpened = cv2.filter2D(enhanced_image, -1, kernel)
-    
+    sharpened = cv2.filter2D(filtered_image, -1, kernel)
+
     return sharpened
 
 def main():
@@ -41,7 +49,7 @@ def main():
         return
     user_image = cv2.cvtColor(user_image_cv2, cv2.COLOR_BGR2RGB)
 
-    user_face_encodings = face_recognition.face_encodings(user_image)
+    user_face_encodings = face_recognition.face_encodings(user_image, model="cnn")  
     if len(user_face_encodings) == 0:
         result = {
             "success": False,
@@ -62,9 +70,9 @@ def main():
             continue
         processed_image = cv2.cvtColor(processed_image_cv2, cv2.COLOR_BGR2RGB)
         
-        face_encodings = face_recognition.face_encodings(processed_image)
+        face_encodings = face_recognition.face_encodings(processed_image, model="cnn")
         for face_encoding in face_encodings:
-            match = face_recognition.compare_faces([user_face_encoding], face_encoding, tolerance=0.4)
+            match = face_recognition.compare_faces([user_face_encoding], face_encoding, tolerance=0.5)
             face_distance = face_recognition.face_distance([user_face_encoding], face_encoding)
 
             if match[0]:
