@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const TESTING_MODE = false;
+const TESTING_MODE = true;
 const APITOKEN = process.env.NEXT_PUBLIC_APITOKEN;
 
 const search_by_face = async (image_file) => {
@@ -63,8 +63,9 @@ const search_by_face = async (image_file) => {
 
 export async function POST(req) {
     try {
-        const formData = await req.formData();
-        const file = formData.get('file');
+        const formDataFile = await req.formData();
+        const file = formDataFile.get('file');
+
 
         if (!file) {
             return NextResponse.json({ message: 'No file provided', success: false }, { status: 400 });
@@ -85,7 +86,6 @@ export async function POST(req) {
         return NextResponse.json({ message: 'Accounts found!', success: true, accounts }, { status: 200 });
 
     } catch (error) {
-        console.error('Error in face matching API:', error);
         return NextResponse.json({ message: 'An error occurred', success: false, error: error.message }, { status: 500 });
     }
 }

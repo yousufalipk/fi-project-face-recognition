@@ -2,15 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { toast } from "react-toastify";
-import axios from 'axios';
 
 // Icons Import from react-icons
 import { FaImage } from "react-icons/fa";
 import { CiSearch } from "react-icons/ci";
 import { FaInstagramSquare } from "react-icons/fa";
 import { FaFacebookSquare } from "react-icons/fa";
-
-import Loader from '../../components/loader';
+import { FaUpload } from "react-icons/fa";
 
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -24,6 +22,7 @@ const SearchPeoplePage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [results, setResults] = useState([]);
     const [recentResults, setRecentResults] = useState([]);
+    const [progress, setProgress] = useState(0);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -52,60 +51,34 @@ const SearchPeoplePage = () => {
     const handleSearchAccount = async () => {
         try {
             setLoading(true);
+            setProgress(0);
 
             setResults([]);
 
             if (!searchTerm && !file) {
                 toast.error('Username & Image is required!');
+                setProgress(100);
                 return;
             }
 
-            const response = await fetch(`/api/search?query=${searchTerm}`);
+            setProgress(10);
 
+            const response = await fetch(`/api/search?query=${searchTerm}`);
             const result = await response.json();
 
             if (!response.ok) {
                 toast.error('Error searching accounts!');
+                setProgress(100);
                 return;
             }
 
             let accounts = [...result.facebookUsers, ...result.instagramUsers];
 
-            if (accounts.length === 0) {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                try {
-                    const faceSearchResponse = await fetch('/api/reverse-face-search', {
-                        method: 'POST',
-                        body: formData,
-                    });
-
-                    if (!faceSearchResponse.ok) {
-                        toast.error('Error searching accounts!');
-                        return;
-                    }
-
-                    const result = await faceSearchResponse.json();
-                    console.log('====> Face search result:', result.accounts);
-                    accounts = result.accounts;
-
-                } catch (error) {
-                    console.error('Error in face search request:', error);
-                    toast.error('An unexpected error occurred!');
-                }
-            }
-
-            /*
-            if (accounts.length === 0) {
-                toast.error('No match found!');
-                return;
-            }
-                */
-
             const formData = new FormData();
             formData.append("file", file);
             formData.append("accounts", JSON.stringify(accounts));
+
+            setProgress(30);
 
             const res = await fetch("/api/match", {
                 method: "POST",
@@ -113,33 +86,107 @@ const SearchPeoplePage = () => {
             });
 
             if (!res.ok) {
-                toast.error('No Match found!');
+                toast.error('Error Matching Faces!');
+                setProgress(100);
                 return;
             }
 
             const data = await res.json();
 
-            if (data.success) {
+            if (!data.success) {
+                setProgress(50);
+
+                try {
+                    const formDataFile = new FormData();
+                    formDataFile.append('file', file);
+
+                    const faceSearchResponse = await fetch('/api/reverse-face-search', {
+                        method: 'POST',
+                        body: formDataFile,
+                    });
+
+                    if (!faceSearchResponse.ok) {
+                        toast.error('Error searching accounts!');
+                        setProgress(100);
+                        return;
+                    }
+
+                    setProgress(60);
+
+                    const result = await faceSearchResponse.json();
+                    accounts = result.accounts;
+
+                    setProgress(70);
+
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    formData.append("accounts", JSON.stringify(accounts));
+
+                    const res = await fetch("/api/match", {
+                        method: "POST",
+                        body: formData,
+                    });
+
+                    setProgress(80);
+
+                    if (!res.ok) {
+                        toast.error('No match found!');
+                        setProgress(100);
+                        return;
+                    }
+
+                    const data = await res.json();
+
+                    setProgress(90);
+
+                    if (data.success) {
+                        toast.success('Match found!');
+                        const parsedIndex = parseInt(data.file_name, 10);
+                        setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
+                        setProgress(100);
+                    } else {
+                        toast.error('Match not found!');
+                        setProgress(100);
+                    }
+                } catch (error) {
+                    console.error('Error in face search request:', error);
+                    toast.error('An unexpected error occurred!');
+                    setProgress(100);
+                }
+                return;
+            } else {
                 toast.success('Match found!');
                 const parsedIndex = parseInt(data.file_name, 10);
                 setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
-            } else {
-                toast.error('No match found!');
+                setProgress(100);
             }
         } catch (error) {
-            console.log('Internal Server Error!', error);
+            console.error('Internal Server Error!', error);
             toast.error('Internal Server Error!');
+            setProgress(100);
         } finally {
             setLoading(false);
+            setTimeout(() => {
+                setLoading(false);
+                setProgress(0);
+            }, 2000);
         }
     };
+
 
     return (
         <div className='w-full h-[100vh] bg-[#111827] flex flex-col justify-start items-center text-[#D1D5DB] overflow-x-hidden overflow-y-scroll gap-5'>
             <div className='w-full h-[10vh]'>
-
+                <Navbar />
             </div>
-            <Navbar />
+            {/* Loader */}
+            <div className="fixed top-[10vh] left-0 w-full h-1 bg-transparent z-50">
+                <div
+                    className="h-full bg-gradient-to-r from-teal-400 to-blue-600 transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                ></div>
+            </div>
+
             <div className='w-full h-[10vh] flex justify-center items-end'>
                 <h1 className='text-center font-bold text-4xl'>
                     Find people by name or face
@@ -165,11 +212,10 @@ const SearchPeoplePage = () => {
                 <p className='text-neutral-700'>
                     and
                 </p>
-                <div className='w-[50%] h-12 flex justify-center items-center bg-gray-700 rounded-lg overflow-hidden focus:ring-teal-500 text-gray-300'>
-                    <label className="flex items-center justify-center gap-2 w-[80%] h-12 px-4 bg-gray-700 rounded-l-lg cursor-pointer text-white">
+                <div className='flex justify-center items-center'>
+                    <label className="flex items-center justify-center cursor-pointer text-white">
                         <div className='w-full h-full flex justify-center items-center gap-2'>
-                            <FaImage color='#D1D5DB' />
-                            <span className='text-[#D1D5DB]'>{fileName || "Upload Image Here"}</span>
+                            <FaUpload color='D1D5DB' size={25} />
                         </div>
                         <input type="file" className="hidden" onChange={handleFileChange} disabled={loading} />
                     </label>
@@ -228,21 +274,9 @@ const SearchPeoplePage = () => {
                         </>
                     ) : (
                         <>
-                            {loading ? (
-                                <>
-                                    <div className='flex justify-center items-center'>
-                                        <Loader size={15} />
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    {results.length === 0 && (
-                                        <div className='w-full flex justify-center items-center text-center py-2 italic'>
-                                            No search results!
-                                        </div>
-                                    )}
-                                </>
-                            )}
+                            <div className='w-full flex justify-center items-center text-center py-2 italic'>
+                                No search results!
+                            </div>
                         </>
                     )}
                 </div>
