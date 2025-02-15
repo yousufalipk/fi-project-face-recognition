@@ -7,7 +7,6 @@ import sys
 
 USER_IMAGE_PATH = "public/userImage/userImage.jpg"
 IMAGES_FOLDER = "public/images"
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "ESPCN_x4.pb") 
 
 def preprocess_image(image_path):
     """Load and enhance image quality before face recognition."""
@@ -27,18 +26,6 @@ def preprocess_image(image_path):
 
     return enhanced_image
 
-def super_resolve(image):
-    """Use AI Super-Resolution to upscale blurry images."""
-    if not os.path.exists(MODEL_PATH):
-        raise FileNotFoundError(f"Super-resolution model not found at {MODEL_PATH}")
-
-    sr = cv2.dnn_superres.DnnSuperResImpl_create()
-    sr.readModel(MODEL_PATH)
-    sr.setModel("espcn", 4) 
-
-    upscaled = sr.upsample(image)
-    return upscaled
-
 def main():
     if not os.path.exists(USER_IMAGE_PATH):
         print(json.dumps({
@@ -54,9 +41,7 @@ def main():
         print(json.dumps({"success": False, "message": "Failed to load user image."}))
         return
 
-    user_image_cv2 = super_resolve(user_image_cv2)
     user_image_rgb = cv2.cvtColor(user_image_cv2, cv2.COLOR_BGR2RGB)
-
     user_face_encodings = face_recognition.face_encodings(user_image_rgb, model="cnn")
     if len(user_face_encodings) == 0:
         print(json.dumps({
@@ -78,12 +63,10 @@ def main():
         if processed_image_cv2 is None:
             continue
 
-        processed_image_cv2 = super_resolve(processed_image_cv2)
         processed_image_rgb = cv2.cvtColor(processed_image_cv2, cv2.COLOR_BGR2RGB)
-
         face_encodings = face_recognition.face_encodings(processed_image_rgb, model="cnn")
         if len(face_encodings) == 0:
-            print(f"Skipping {img_name}: No faces detected.", file=sys.stderr)  # Redirect non-JSON messages
+            print(f"Skipping {img_name}: No faces detected.", file=sys.stderr)
             continue
 
         for face_encoding in face_encodings:
