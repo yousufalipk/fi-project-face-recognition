@@ -13,6 +13,8 @@ import { FaUpload } from "react-icons/fa";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
+import ClipLoader from "react-spinners/ClipLoader";
+
 
 
 const SearchPeoplePage = () => {
@@ -35,6 +37,10 @@ const SearchPeoplePage = () => {
             setResults([]);
         }
     }, [searchTerm]);
+
+    useEffect(() => {
+        console.log('Results', results);
+    }, [results])
 
 
     const handleFileChange = (event) => {
@@ -142,6 +148,7 @@ const SearchPeoplePage = () => {
                     if (data.success) {
                         toast.success('Match found!');
                         const parsedIndex = parseInt(data.file_name, 10);
+                        console.log('parsedIndex', parsedIndex);
                         setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
                         setProgress(100);
                     } else {
@@ -157,6 +164,7 @@ const SearchPeoplePage = () => {
             } else {
                 toast.success('Match found!');
                 const parsedIndex = parseInt(data.file_name, 10);
+                console.log('parsedIndex', parsedIndex);
                 setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
                 setProgress(100);
             }
@@ -179,13 +187,14 @@ const SearchPeoplePage = () => {
             <div className='w-full h-[10vh]'>
                 <Navbar />
             </div>
-            {/* Loader */}
+            {/* Loader 
             <div className="fixed top-[10vh] left-0 w-full h-1 bg-transparent z-50">
                 <div
                     className="h-full bg-gradient-to-r from-teal-400 to-blue-600 transition-all duration-300"
                     style={{ width: `${progress}%` }}
                 ></div>
             </div>
+            */}
 
             <div className='w-full h-[10vh] flex justify-center items-end'>
                 <h1 className='text-center font-bold text-4xl'>
@@ -216,6 +225,7 @@ const SearchPeoplePage = () => {
                     <label className="flex items-center justify-center cursor-pointer text-white">
                         <div className='w-full h-full flex justify-center items-center gap-2'>
                             <FaUpload color='D1D5DB' size={25} />
+                            {fileName ? `${fileName}` : 'No file chosen'}
                         </div>
                         <input type="file" className="hidden" onChange={handleFileChange} disabled={loading} />
                     </label>
@@ -223,126 +233,138 @@ const SearchPeoplePage = () => {
             </div>
 
             {/* Current Searches */}
-            <div className='w-[70%] flex flex-col justify-start items-start gap-2'>
-                <h1 className='w-full text-start font-semibold text-xl'>
-                    Search Results
-                </h1>
-                <div className='w-full h-full overflow-x-hidden overflow-y-scroll flex flex-col justify-start items-start gap-2'>
-                    {results.length > 0 ? (
-                        <>
-                            {results.map((user, index) => {
-                                return (
-                                    <div
-                                        key={index}
-                                        className='w-full h-12 flex justify-between items-center my-1'
-                                    >
-                                        <div className='w-1/2 h-full flex justify-start items-center gap-5'>
-                                            <Image
-                                                src={user?.image?.uri || user?.profile_pic_url || user?.image}
-                                                alt="profile_pic"
-                                                width={50}
-                                                height={50}
-                                                className="rounded-full overflow-hidden"
-                                            />
-                                            <div className='w-[20vw] flex flex-col justify-center items-start'>
-                                                <h1 className='text-start font-semibold'>
-                                                    {user?.name || user.full_name || ''}
-                                                </h1>
-                                                <p className='text-start text-neutral-500 flex justify-start items-center gap-1'>
-                                                    rank {index + 1}, type {user?.image ? <FaFacebookSquare size={20} /> : <FaInstagramSquare size={20} />}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className='w-1/2 h-full flex justify-end items-center mr-5'>
-                                            <button
-                                                onClick={() => {
-                                                    const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
-                                                    if (url) {
-                                                        window.open(url, "_blank");
-                                                    } else {
-                                                        console.error("No valid URL found for user.");
-                                                    }
-                                                }}
-                                                className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
+            {!loading && results.length > 0 ? (
+                <>
+                    <div className='w-[70%] flex flex-col justify-start items-start gap-2'>
+                        <h1 className='w-full text-start font-semibold text-xl'>
+                            Search Results
+                        </h1>
+                        <div className='w-full h-full overflow-x-hidden overflow-y-scroll flex flex-col justify-start items-start gap-2'>
+                            {results.length > 0 ? (
+                                <>
+                                    {results.map((user, index) => {
+                                        return (
+                                            <div
+                                                key={index}
+                                                className='w-full h-12 flex justify-between items-center my-1'
                                             >
-                                                View
-                                            </button>
-                                        </div>
+                                                <div className='w-1/2 h-full flex justify-start items-center gap-5'>
+                                                    <Image
+                                                        src={user?.image?.uri || user?.profile_pic_url || user?.image}
+                                                        alt="profile_pic"
+                                                        width={50}
+                                                        height={50}
+                                                        className="rounded-full overflow-hidden"
+                                                    />
+                                                    <div className='w-[20vw] flex flex-col justify-center items-start'>
+                                                        <h1 className='text-start font-semibold'>
+                                                            {user?.name || user.full_name || ''}
+                                                        </h1>
+                                                        <p className='text-start text-neutral-500 flex justify-start items-center gap-1'>
+                                                            rank {index + 1}, type {user?.image ? <FaFacebookSquare size={20} /> : <FaInstagramSquare size={20} />}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className='w-1/2 h-full flex justify-end items-center mr-5'>
+                                                    <button
+                                                        onClick={() => {
+                                                            const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
+                                                            if (url) {
+                                                                window.open(url, "_blank");
+                                                            } else {
+                                                                console.error("No valid URL found for user.");
+                                                            }
+                                                        }}
+                                                        className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
+                                                    >
+                                                        View
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </>
+                            ) : (
+                                <>
+                                    <div className='w-full flex justify-center items-center text-center py-2 italic'>
+                                        No search results!
                                     </div>
-                                )
-                            })}
-                        </>
-                    ) : (
-                        <>
-                            <div className='w-full flex justify-center items-center text-center py-2 italic'>
-                                No search results!
-                            </div>
-                        </>
-                    )}
-                </div>
-            </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
 
-            {/* Recent Searches */}
-            <div className='w-[70%] flex flex-col justify-start items-start gap-2'>
-                <h1 className='w-full text-start font-semibold text-xl'>
-                    Recent Searches
-                </h1>
-                <div className='w-full h-full flex flex-col justify-start items-start gap-2'>
-                    {recentResults.length > 0 ? (
-                        <>
-                            {recentResults.map((user, index) => {
-                                return (
-                                    <div
-                                        key={index}
-                                        className='w-full h-12 flex justify-between items-center my-1'
-                                    >
-                                        <div className='w-1/2 h-full flex justify-start items-center gap-5'>
-                                            <Image
-                                                src={user?.image?.uri || user?.profile_pic_url || user?.image}
-                                                alt="profile_pic"
-                                                width={50}
-                                                height={50}
-                                                className="rounded-full overflow-hidden"
-                                            />
-                                            <div className='w-[20vw] flex flex-col justify-center items-start'>
-                                                <h1 className='text-start font-semibold'>
-                                                    {user?.name || user.full_name || ''}
-                                                </h1>
-                                                <p className='text-start text-neutral-500'>
-                                                    rank {index + 1}, type {user?.image ? <FaFacebookSquare /> : <FaInstagramSquare />}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className='w-1/2 h-full flex justify-end items-center mr-5'>
-                                            <button
-                                                onClick={() => {
-                                                    const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
-                                                    if (url) {
-                                                        window.open(url, "_blank");
-                                                    } else {
-                                                        console.error("No valid URL found for user.");
-                                                    }
-                                                }}
-                                                className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
+                    {/* Recent Searches */}
+                    <div className='w-[70%] flex flex-col justify-start items-start gap-2'>
+                        <h1 className='w-full text-start font-semibold text-xl'>
+                            Recent Searches
+                        </h1>
+                        <div className='w-full h-full flex flex-col justify-start items-start gap-2'>
+                            {recentResults.length > 0 ? (
+                                <>
+                                    {recentResults.map((user, index) => {
+                                        return (
+                                            <div
+                                                key={index}
+                                                className='w-full h-12 flex justify-between items-center my-1'
                                             >
-                                                View
-                                            </button>
+                                                <div className='w-1/2 h-full flex justify-start items-center gap-5'>
+                                                    <Image
+                                                        src={user?.image?.uri || user?.profile_pic_url || user?.image}
+                                                        alt="profile_pic"
+                                                        width={50}
+                                                        height={50}
+                                                        className="rounded-full overflow-hidden"
+                                                    />
+                                                    <div className='w-[20vw] flex flex-col justify-center items-start'>
+                                                        <h1 className='text-start font-semibold'>
+                                                            {user?.name || user.full_name || ''}
+                                                        </h1>
+                                                        <p className='text-start text-neutral-500'>
+                                                            rank {index + 1}, type {user?.image ? <FaFacebookSquare /> : <FaInstagramSquare />}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className='w-1/2 h-full flex justify-end items-center mr-5'>
+                                                    <button
+                                                        onClick={() => {
+                                                            const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
+                                                            if (url) {
+                                                                window.open(url, "_blank");
+                                                            } else {
+                                                                console.error("No valid URL found for user.");
+                                                            }
+                                                        }}
+                                                        className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
+                                                    >
+                                                        View
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </>
+                            ) : (
+                                <>
+                                    {
+                                        <div div className='w-full flex justify-center items-center text-center py-2 italic'>
+                                            No recent searches!
                                         </div>
-                                    </div>
-                                )
-                            })}
-                        </>
-                    ) : (
-                        <>
-                            {
-                                <div div className='w-full flex justify-center items-center text-center py-2 italic'>
-                                    No recent searches!
-                                </div>
-                            }
-                        </>
+                                    }
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <>
+                    {loading && (
+                        <div>
+                            <ClipLoader size={60} color="#2DD4BF" />
+                        </div>
                     )}
-                </div>
-            </div>
+                </>
+            )}
             <Footer />
         </div >
     )
