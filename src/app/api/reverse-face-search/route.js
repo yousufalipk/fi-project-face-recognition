@@ -4,6 +4,7 @@ const TESTING_MODE = false;
 const APITOKEN = process.env.NEXT_PUBLIC_APITOKEN;
 
 const search_by_face = async (image_file) => {
+    console.log('================> API KEY', APITOKEN);
     if (TESTING_MODE) {
         console.log('****** TESTING MODE: Results may be inaccurate, but no credits are deducted ******');
     }
