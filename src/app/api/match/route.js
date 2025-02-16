@@ -68,7 +68,7 @@ export async function POST(req) {
         }
 
         const result = await new Promise((resolve, reject) => {
-            const pythonProcess = spawn("python3", [scriptPath]);
+            const pythonProcess = spawn("python", [scriptPath]);
 
             let scriptOutput = "";
             let scriptError = "";
