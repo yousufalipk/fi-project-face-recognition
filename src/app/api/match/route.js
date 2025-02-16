@@ -12,18 +12,18 @@ export async function POST(req) {
         const accounts = JSON.parse(data.get("accounts") || "[]");
 
         if (!file) {
-            return NextResponse.json(
-                { message: "No file uploaded", success: false },
-                { status: 400 }
-            );
+            return NextResponse.json({ message: "No file uploaded", success: false }, { status: 400 });
         }
 
-        const imagesDir = path.join(process.cwd(), "public", "images");
-        const userImageDir = path.join(process.cwd(), "public", "userImage");
+        const baseDir = path.resolve(process.cwd(), "public");
+        const imagesDir = path.join(baseDir, "images");
+        const userImageDir = path.join(baseDir, "userImage");
         const userImagePath = path.join(userImageDir, "userImage.jpg");
 
-        if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
-        if (!fs.existsSync(userImageDir)) fs.mkdirSync(userImageDir, { recursive: true });
+        // Ensure directories exist
+        for (const dir of [imagesDir, userImageDir]) {
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        }
 
         let index = 0;
 
@@ -35,11 +35,9 @@ export async function POST(req) {
                 const imagePath = path.join(imagesDir, `${index}.jpg`);
 
                 if (imageSrc.startsWith("data:image")) {
-                    const parts = imageSrc.split(",");
-                    if (parts.length > 2) {
-                        imageSrc = parts[0] + "," + parts[parts.length - 1];
-                    }
-                    const base64Data = imageSrc.split(",")[1];
+                    const base64Data = imageSrc.split(",").pop();
+                    if (!base64Data) continue;
+
                     const buffer = Buffer.from(base64Data, "base64");
                     await writeFile(imagePath, buffer);
                 } else {
@@ -63,8 +61,14 @@ export async function POST(req) {
 
         const scriptPath = path.join(process.cwd(), "scripts", "facenet_match.py");
 
+        // Check if Python and the script exist
+        if (!fs.existsSync(scriptPath)) {
+            console.error("Python script not found:", scriptPath);
+            return NextResponse.json({ message: "Server error: Python script missing", success: false }, { status: 500 });
+        }
+
         const result = await new Promise((resolve, reject) => {
-            const pythonProcess = spawn("python", [scriptPath]);
+            const pythonProcess = spawn("python3", [scriptPath]);
 
             let scriptOutput = "";
             let scriptError = "";
@@ -80,20 +84,17 @@ export async function POST(req) {
             pythonProcess.on("close", (code) => {
                 if (code !== 0) {
                     console.error(`Python script error: ${scriptError}`);
-                    reject(
-                        new Error(`Python script exited with code ${code}: ${scriptError}`)
-                    );
-                    return;
-                }
-
-                const jsonStartIndex = scriptOutput.indexOf("{");
-                if (jsonStartIndex !== -1) {
-                    scriptOutput = scriptOutput.substring(jsonStartIndex);
+                    return reject(new Error(`Python script exited with code ${code}: ${scriptError}`));
                 }
 
                 try {
-                    const parsedData = JSON.parse(scriptOutput);
-                    resolve(parsedData);
+                    scriptOutput = scriptOutput.trim();
+                    if (!scriptOutput.startsWith("{")) {
+                        console.error("Unexpected Python output:", scriptOutput);
+                        return reject(new Error("Invalid JSON output from Python script"));
+                    }
+
+                    resolve(JSON.parse(scriptOutput));
                 } catch (parseError) {
                     console.error("JSON Parse Error:", parseError.message, "| Raw Output:", scriptOutput);
                     reject(new Error("Invalid JSON output from Python script"));
@@ -101,12 +102,11 @@ export async function POST(req) {
             });
         });
 
+        // Cleanup old files
         try {
-            const files = await readdir(imagesDir);
-            for (const file of files) {
+            for (const file of await readdir(imagesDir)) {
                 await unlink(path.join(imagesDir, file));
             }
-
             if (fs.existsSync(userImagePath)) {
                 await unlink(userImagePath);
             }
@@ -117,9 +117,6 @@ export async function POST(req) {
         return NextResponse.json(result, { status: 200 });
     } catch (error) {
         console.error("Error in face matching API:", error);
-        return NextResponse.json(
-            { message: "An error occurred", success: false },
-            { status: 500 }
-        );
+        return NextResponse.json({ message: "An error occurred", success: false }, { status: 500 });
     }
 }

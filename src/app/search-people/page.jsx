@@ -187,14 +187,6 @@ const SearchPeoplePage = () => {
             <div className='w-full h-[10vh]'>
                 <Navbar />
             </div>
-            {/* Loader 
-            <div className="fixed top-[10vh] left-0 w-full h-1 bg-transparent z-50">
-                <div
-                    className="h-full bg-gradient-to-r from-teal-400 to-blue-600 transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                ></div>
-            </div>
-            */}
 
             <div className='w-full h-[10vh] flex justify-center items-end'>
                 <h1 className='text-center font-bold text-4xl'>
@@ -243,7 +235,6 @@ const SearchPeoplePage = () => {
                             {results.length > 0 ? (
                                 <>
                                     {results.map((user, index) => {
-                                        console.log('user', user);
                                         let UserImage;
                                         if (user?.image?.uri) {
                                             UserImage = user?.image?.uri;
@@ -317,6 +308,19 @@ const SearchPeoplePage = () => {
                             {recentResults.length > 0 ? (
                                 <>
                                     {recentResults.map((user, index) => {
+                                        let UserImage;
+                                        if (user?.image?.uri) {
+                                            UserImage = user?.image?.uri;
+                                        } else {
+                                            if (user?.profile_pic_url) {
+                                                UserImage = user?.profile_pic_url;
+                                            } else {
+                                                const parts = user.image.split(",");
+                                                if (parts.length > 2) {
+                                                    UserImage = parts[0] + "," + parts[parts.length - 1];
+                                                }
+                                            }
+                                        }
                                         return (
                                             <div
                                                 key={index}
@@ -324,7 +328,7 @@ const SearchPeoplePage = () => {
                                             >
                                                 <div className='w-1/2 h-full flex justify-start items-center gap-5'>
                                                     <Image
-                                                        src={user?.image?.uri || user?.profile_pic_url || user?.image}
+                                                        src={UserImage}
                                                         alt="profile_pic"
                                                         width={50}
                                                         height={50}
