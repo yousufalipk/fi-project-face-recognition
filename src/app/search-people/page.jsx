@@ -243,6 +243,20 @@ const SearchPeoplePage = () => {
                             {results.length > 0 ? (
                                 <>
                                     {results.map((user, index) => {
+                                        console.log('user', user);
+                                        let UserImage;
+                                        if (user?.image?.uri) {
+                                            UserImage = user?.image?.uri;
+                                        } else {
+                                            if (user?.profile_pic_url) {
+                                                UserImage = user?.profile_pic_url;
+                                            } else {
+                                                const parts = user.image.split(",");
+                                                if (parts.length > 2) {
+                                                    UserImage = parts[0] + "," + parts[parts.length - 1];
+                                                }
+                                            }
+                                        }
                                         return (
                                             <div
                                                 key={index}
@@ -250,7 +264,7 @@ const SearchPeoplePage = () => {
                                             >
                                                 <div className='w-1/2 h-full flex justify-start items-center gap-5'>
                                                     <Image
-                                                        src={user?.image?.uri || user?.profile_pic_url || user?.image}
+                                                        src={UserImage}
                                                         alt="profile_pic"
                                                         width={50}
                                                         height={50}
