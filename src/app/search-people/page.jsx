@@ -38,10 +38,6 @@ const SearchPeoplePage = () => {
         }
     }, [searchTerm]);
 
-    useEffect(() => {
-        console.log('Results', results);
-    }, [results])
-
 
     const handleFileChange = (event) => {
         const file = event.target.files[0];

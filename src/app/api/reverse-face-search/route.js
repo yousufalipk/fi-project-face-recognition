@@ -74,6 +74,7 @@ export async function POST(req) {
         const [error, urls_images] = await search_by_face(file);
 
         if (error) {
+            console.log('Error', error);
             return NextResponse.json({ message: 'Face search failed!', success: false, error }, { status: 500 });
         }
 

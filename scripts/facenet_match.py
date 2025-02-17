@@ -2,35 +2,9 @@ import json
 import face_recognition
 import os
 import cv2
-import numpy as np
 
 USER_IMAGE_PATH = "public/userImage/userImage.jpg"
 IMAGES_FOLDER = "public/images"
-
-def preprocess_image(image_path):
-    """Load and preprocess an image to enhance face recognition in blurry images."""
-    image = cv2.imread(image_path)
-    if image is None:
-        return None
-
-    # Convert to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
-
-    # Convert back to BGR for face recognition compatibility
-    enhanced_image = cv2.cvtColor(enhanced, cv2.COLOR_GRAY2BGR)
-
-    # Apply bilateral filter to reduce noise while keeping edges sharp
-    filtered_image = cv2.bilateralFilter(enhanced_image, d=9, sigmaColor=75, sigmaSpace=75)
-
-    # Sharpening Kernel
-    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
-    sharpened = cv2.filter2D(filtered_image, -1, kernel)
-
-    return sharpened
 
 def main():
     if not os.path.exists(USER_IMAGE_PATH):
@@ -43,13 +17,9 @@ def main():
         print(json.dumps(result))
         return
 
-    user_image_cv2 = preprocess_image(USER_IMAGE_PATH)
-    if user_image_cv2 is None:
-        print(json.dumps({"success": False, "message": "Failed to load user image."}))
-        return
-    user_image = cv2.cvtColor(user_image_cv2, cv2.COLOR_BGR2RGB)
-
-    user_face_encodings = face_recognition.face_encodings(user_image, model="cnn")  
+    user_image = face_recognition.load_image_file(USER_IMAGE_PATH)
+    user_face_encodings = face_recognition.face_encodings(user_image)
+    
     if len(user_face_encodings) == 0:
         result = {
             "success": False,
@@ -64,13 +34,9 @@ def main():
 
     for img_name in os.listdir(IMAGES_FOLDER):
         img_path = os.path.join(IMAGES_FOLDER, img_name)
+        image = face_recognition.load_image_file(img_path)
+        face_encodings = face_recognition.face_encodings(image)
         
-        processed_image_cv2 = preprocess_image(img_path)
-        if processed_image_cv2 is None:
-            continue
-        processed_image = cv2.cvtColor(processed_image_cv2, cv2.COLOR_BGR2RGB)
-        
-        face_encodings = face_recognition.face_encodings(processed_image, model="cnn")
         for face_encoding in face_encodings:
             match = face_recognition.compare_faces([user_face_encoding], face_encoding, tolerance=0.5)
             face_distance = face_recognition.face_distance([user_face_encoding], face_encoding)

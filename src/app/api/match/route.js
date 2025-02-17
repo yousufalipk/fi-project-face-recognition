@@ -102,7 +102,6 @@ export async function POST(req) {
             });
         });
 
-        // Cleanup old files
         try {
             for (const file of await readdir(imagesDir)) {
                 await unlink(path.join(imagesDir, file));
