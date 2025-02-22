@@ -113,6 +113,8 @@ export async function POST(req) {
             console.error("Error during cleanup:", cleanupError);
         }
 
+        console.log("Results =======> ", result);
+
         return NextResponse.json(result, { status: 200 });
     } catch (error) {
         console.error("Error in face matching API:", error);

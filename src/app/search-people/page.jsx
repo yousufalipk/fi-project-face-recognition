@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { toast } from "react-toastify";
 
 // Icons Import from react-icons
-import { FaImage } from "react-icons/fa";
 import { CiSearch } from "react-icons/ci";
 import { FaInstagramSquare } from "react-icons/fa";
 import { FaFacebookSquare } from "react-icons/fa";
@@ -15,8 +14,6 @@ import Footer from '@/components/Footer';
 
 import ClipLoader from "react-spinners/ClipLoader";
 
-
-
 const SearchPeoplePage = () => {
 
     const [fileName, setFileName] = useState("");
@@ -24,7 +21,6 @@ const SearchPeoplePage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [results, setResults] = useState([]);
     const [recentResults, setRecentResults] = useState([]);
-    const [progress, setProgress] = useState(0);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -53,7 +49,8 @@ const SearchPeoplePage = () => {
     const handleSearchAccount = async () => {
         try {
             setLoading(true);
-            setProgress(0);
+
+            let accounts = [];
 
             setResults([]);
 
@@ -63,24 +60,19 @@ const SearchPeoplePage = () => {
                 return;
             }
 
-            setProgress(10);
-
             const response = await fetch(`/api/search?query=${searchTerm}`);
             const result = await response.json();
 
             if (!response.ok) {
                 toast.error('Error searching accounts!');
-                setProgress(100);
                 return;
             }
 
-            let accounts = [...result.facebookUsers, ...result.instagramUsers];
+            accounts = [...result.facebookUsers, ...result.instagramUsers];
 
             const formData = new FormData();
             formData.append("file", file);
             formData.append("accounts", JSON.stringify(accounts));
-
-            setProgress(30);
 
             const res = await fetch("/api/match", {
                 method: "POST",
@@ -96,8 +88,6 @@ const SearchPeoplePage = () => {
             const data = await res.json();
 
             if (!data.success) {
-                setProgress(50);
-
                 try {
                     const formDataFile = new FormData();
                     formDataFile.append('file', file);
@@ -109,16 +99,12 @@ const SearchPeoplePage = () => {
 
                     if (!faceSearchResponse.ok) {
                         toast.error('Error searching accounts!');
-                        setProgress(100);
                         return;
                     }
 
-                    setProgress(60);
-
                     const result = await faceSearchResponse.json();
-                    accounts = result.accounts;
 
-                    setProgress(70);
+                    accounts = result.accounts;
 
                     const formData = new FormData();
                     formData.append("file", file);
@@ -129,50 +115,37 @@ const SearchPeoplePage = () => {
                         body: formData,
                     });
 
-                    setProgress(80);
-
                     if (!res.ok) {
                         toast.error('No match found!');
-                        setProgress(100);
                         return;
                     }
 
                     const data = await res.json();
 
-                    setProgress(90);
-
                     if (data.success) {
                         toast.success('Match found!');
                         const parsedIndex = parseInt(data.file_name, 10);
-                        console.log('parsedIndex', parsedIndex);
                         setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
-                        setProgress(100);
                     } else {
                         toast.error('Match not found!');
-                        setProgress(100);
                     }
                 } catch (error) {
                     console.error('Error in face search request:', error);
                     toast.error('An unexpected error occurred!');
-                    setProgress(100);
                 }
                 return;
             } else {
                 toast.success('Match found!');
                 const parsedIndex = parseInt(data.file_name, 10);
-                console.log('parsedIndex', parsedIndex);
                 setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
-                setProgress(100);
             }
         } catch (error) {
             console.error('Internal Server Error!', error);
             toast.error('Internal Server Error!');
-            setProgress(100);
         } finally {
             setLoading(false);
             setTimeout(() => {
                 setLoading(false);
-                setProgress(0);
             }, 2000);
         }
     };
@@ -221,164 +194,166 @@ const SearchPeoplePage = () => {
             </div>
 
             {/* Current Searches */}
-            {!loading && results.length > 0 ? (
-                <>
-                    <div className='w-[70%] flex flex-col justify-start items-start gap-2'>
-                        <h1 className='w-full text-start font-semibold text-xl'>
-                            Search Results
-                        </h1>
-                        <div className='w-full h-full overflow-x-hidden overflow-y-scroll flex flex-col justify-start items-start gap-2'>
-                            {results.length > 0 ? (
-                                <>
-                                    {results.map((user, index) => {
-                                        let UserImage;
-                                        if (user?.image?.uri) {
-                                            UserImage = user?.image?.uri;
-                                        } else {
-                                            if (user?.profile_pic_url) {
-                                                UserImage = user?.profile_pic_url;
+            {
+                !loading && results.length > 0 ? (
+                    <>
+                        <div className='w-[70%] flex flex-col justify-start items-start gap-2'>
+                            <h1 className='w-full text-start font-semibold text-xl'>
+                                Search Results
+                            </h1>
+                            <div className='w-full h-full overflow-x-hidden overflow-y-scroll flex flex-col justify-start items-start gap-2'>
+                                {results.length > 0 ? (
+                                    <>
+                                        {results.map((user, index) => {
+                                            let UserImage;
+                                            if (user?.image?.uri) {
+                                                UserImage = user?.image?.uri;
                                             } else {
-                                                const parts = user.image.split(",");
-                                                if (parts.length > 2) {
-                                                    UserImage = parts[0] + "," + parts[parts.length - 1];
+                                                if (user?.profile_pic_url) {
+                                                    UserImage = user?.profile_pic_url;
+                                                } else {
+                                                    const parts = user.image.split(",");
+                                                    if (parts.length > 2) {
+                                                        UserImage = parts[0] + "," + parts[parts.length - 1];
+                                                    }
                                                 }
                                             }
-                                        }
-                                        return (
-                                            <div
-                                                key={index}
-                                                className='w-full h-12 flex justify-between items-center my-1'
-                                            >
-                                                <div className='w-1/2 h-full flex justify-start items-center gap-5'>
-                                                    <Image
-                                                        src={UserImage}
-                                                        alt="profile_pic"
-                                                        width={50}
-                                                        height={50}
-                                                        className="rounded-full overflow-hidden"
-                                                    />
-                                                    <div className='w-[20vw] flex flex-col justify-center items-start'>
-                                                        <h1 className='text-start font-semibold'>
-                                                            {user?.name || user.full_name || ''}
-                                                        </h1>
-                                                        <p className='text-start text-neutral-500 flex justify-start items-center gap-1'>
-                                                            rank {index + 1}, type {user?.image ? <FaFacebookSquare size={20} /> : <FaInstagramSquare size={20} />}
-                                                        </p>
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    className='w-full h-12 flex justify-between items-center my-1'
+                                                >
+                                                    <div className='w-1/2 h-full flex justify-start items-center gap-5'>
+                                                        <Image
+                                                            src={UserImage}
+                                                            alt="profile_pic"
+                                                            width={50}
+                                                            height={50}
+                                                            className="rounded-full overflow-hidden"
+                                                        />
+                                                        <div className='w-[20vw] flex flex-col justify-center items-start'>
+                                                            <h1 className='text-start font-semibold'>
+                                                                {user?.name || user.full_name || ''}
+                                                            </h1>
+                                                            <p className='text-start text-neutral-500 flex justify-start items-center gap-1'>
+                                                                rank {index + 1}, type {user?.image ? <FaFacebookSquare size={20} /> : <FaInstagramSquare size={20} />}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className='w-1/2 h-full flex justify-end items-center mr-5'>
+                                                        <button
+                                                            onClick={() => {
+                                                                const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
+                                                                if (url) {
+                                                                    window.open(url, "_blank");
+                                                                } else {
+                                                                    console.error("No valid URL found for user.");
+                                                                }
+                                                            }}
+                                                            className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
+                                                        >
+                                                            View
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div className='w-1/2 h-full flex justify-end items-center mr-5'>
-                                                    <button
-                                                        onClick={() => {
-                                                            const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
-                                                            if (url) {
-                                                                window.open(url, "_blank");
-                                                            } else {
-                                                                console.error("No valid URL found for user.");
-                                                            }
-                                                        }}
-                                                        className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
-                                                    >
-                                                        View
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </>
-                            ) : (
-                                <>
-                                    <div className='w-full flex justify-center items-center text-center py-2 italic'>
-                                        No search results!
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Recent Searches */}
-                    <div className='w-[70%] flex flex-col justify-start items-start gap-2'>
-                        <h1 className='w-full text-start font-semibold text-xl'>
-                            Recent Searches
-                        </h1>
-                        <div className='w-full h-full flex flex-col justify-start items-start gap-2'>
-                            {recentResults.length > 0 ? (
-                                <>
-                                    {recentResults.map((user, index) => {
-                                        let UserImage;
-                                        if (user?.image?.uri) {
-                                            UserImage = user?.image?.uri;
-                                        } else {
-                                            if (user?.profile_pic_url) {
-                                                UserImage = user?.profile_pic_url;
-                                            } else {
-                                                const parts = user.image.split(",");
-                                                if (parts.length > 2) {
-                                                    UserImage = parts[0] + "," + parts[parts.length - 1];
-                                                }
-                                            }
-                                        }
-                                        return (
-                                            <div
-                                                key={index}
-                                                className='w-full h-12 flex justify-between items-center my-1'
-                                            >
-                                                <div className='w-1/2 h-full flex justify-start items-center gap-5'>
-                                                    <Image
-                                                        src={UserImage}
-                                                        alt="profile_pic"
-                                                        width={50}
-                                                        height={50}
-                                                        className="rounded-full overflow-hidden"
-                                                    />
-                                                    <div className='w-[20vw] flex flex-col justify-center items-start'>
-                                                        <h1 className='text-start font-semibold'>
-                                                            {user?.name || user.full_name || ''}
-                                                        </h1>
-                                                        <p className='text-start text-neutral-500'>
-                                                            rank {index + 1}, type {user?.image ? <FaFacebookSquare /> : <FaInstagramSquare />}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className='w-1/2 h-full flex justify-end items-center mr-5'>
-                                                    <button
-                                                        onClick={() => {
-                                                            const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
-                                                            if (url) {
-                                                                window.open(url, "_blank");
-                                                            } else {
-                                                                console.error("No valid URL found for user.");
-                                                            }
-                                                        }}
-                                                        className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
-                                                    >
-                                                        View
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </>
-                            ) : (
-                                <>
-                                    {
-                                        <div div className='w-full flex justify-center items-center text-center py-2 italic'>
-                                            No recent searches!
+                                            )
+                                        })}
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className='w-full flex justify-center items-center text-center py-2 italic'>
+                                            No search results!
                                         </div>
-                                    }
-                                </>
-                            )}
+                                    </>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </>
-            ) : (
-                <>
-                    {loading && (
-                        <div>
-                            <ClipLoader size={60} color="#2DD4BF" />
+
+                        {/* Recent Searches */}
+                        <div className='w-[70%] flex flex-col justify-start items-start gap-2'>
+                            <h1 className='w-full text-start font-semibold text-xl'>
+                                Recent Searches
+                            </h1>
+                            <div className='w-full h-full flex flex-col justify-start items-start gap-2'>
+                                {recentResults.length > 0 ? (
+                                    <>
+                                        {recentResults.map((user, index) => {
+                                            let UserImage;
+                                            if (user?.image?.uri) {
+                                                UserImage = user?.image?.uri;
+                                            } else {
+                                                if (user?.profile_pic_url) {
+                                                    UserImage = user?.profile_pic_url;
+                                                } else {
+                                                    const parts = user.image.split(",");
+                                                    if (parts.length > 2) {
+                                                        UserImage = parts[0] + "," + parts[parts.length - 1];
+                                                    }
+                                                }
+                                            }
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    className='w-full h-12 flex justify-between items-center my-1'
+                                                >
+                                                    <div className='w-1/2 h-full flex justify-start items-center gap-5'>
+                                                        <Image
+                                                            src={UserImage}
+                                                            alt="profile_pic"
+                                                            width={50}
+                                                            height={50}
+                                                            className="rounded-full overflow-hidden"
+                                                        />
+                                                        <div className='w-[20vw] flex flex-col justify-center items-start'>
+                                                            <h1 className='text-start font-semibold'>
+                                                                {user?.name || user.full_name || ''}
+                                                            </h1>
+                                                            <p className='text-start text-neutral-500'>
+                                                                rank {index + 1}, type {user?.image ? <FaFacebookSquare /> : <FaInstagramSquare />}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className='w-1/2 h-full flex justify-end items-center mr-5'>
+                                                        <button
+                                                            onClick={() => {
+                                                                const url = user?.profile_url || (user?.username ? `https://www.instagram.com/${user.username}` : user?.url);
+                                                                if (url) {
+                                                                    window.open(url, "_blank");
+                                                                } else {
+                                                                    console.error("No valid URL found for user.");
+                                                                }
+                                                            }}
+                                                            className='py-1 px-5 bg-gradient-to-r from-teal-400 to-blue-600 text-white rounded-md hover:opacity-90 text-sm font-semibold'
+                                                        >
+                                                            View
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </>
+                                ) : (
+                                    <>
+                                        {
+                                            <div div className='w-full flex justify-center items-center text-center py-2 italic'>
+                                                No recent searches!
+                                            </div>
+                                        }
+                                    </>
+                                )}
+                            </div>
                         </div>
-                    )}
-                </>
-            )}
+                    </>
+                ) : (
+                    <>
+                        {loading && (
+                            <div>
+                                <ClipLoader size={60} color="#2DD4BF" />
+                            </div>
+                        )}
+                    </>
+                )
+            }
             <Footer />
         </div >
     )
