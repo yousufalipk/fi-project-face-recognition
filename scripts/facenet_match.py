@@ -14,6 +14,7 @@ def align_faces(image):
     """
     face_landmarks_list = face_recognition.face_landmarks(image)
     if len(face_landmarks_list) > 0:
+        print("Face landmarks detected, aligning image...")
         face_landmarks = face_landmarks_list[0]
         
         left_eye = face_landmarks['left_eye']
@@ -29,13 +30,18 @@ def align_faces(image):
         center = (w // 2, h // 2)
         matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
         rotated_image = cv2.warpAffine(image, matrix, (w, h), flags=cv2.INTER_CUBIC)
-
+        
+        print("Image aligned successfully.")
         return rotated_image
     else:
+        print("No face landmarks found. Using original image.")
         return image
 
 def main():
+    print("Starting face recognition process...")
+    
     if not os.path.exists(USER_IMAGE_PATH):
+        print(f"Error: User image '{USER_IMAGE_PATH}' not found!")
         result = {
             "success": False,
             "accuracy": None,
@@ -45,11 +51,13 @@ def main():
         print(json.dumps(result))
         return
 
+    print("Loading user image...")
     user_image = face_recognition.load_image_file(USER_IMAGE_PATH)
     user_image = align_faces(user_image) 
     user_face_encodings = face_recognition.face_encodings(user_image)
     
     if len(user_face_encodings) == 0:
+        print("No face detected in the user image!")
         result = {
             "success": False,
             "accuracy": None,
@@ -60,9 +68,12 @@ def main():
         return
 
     user_face_encoding = user_face_encodings[0]
+    print("User face encoding obtained successfully.")
 
+    print("Scanning images in folder...")
     for img_name in os.listdir(IMAGES_FOLDER):
         img_path = os.path.join(IMAGES_FOLDER, img_name)
+        print(f"Processing image: {img_name}")
         image = face_recognition.load_image_file(img_path)
         image = align_faces(image) 
         face_encodings = face_recognition.face_encodings(image)
@@ -70,6 +81,7 @@ def main():
         for face_encoding in face_encodings:
             match = face_recognition.compare_faces([user_face_encoding], face_encoding, tolerance=0.6) 
             face_distance = face_recognition.face_distance([user_face_encoding], face_encoding)
+            print(f"Comparing with {img_name}: Match - {match[0]}, Distance - {face_distance[0]}")
 
             if match[0]:
                 similarity = 100 - (face_distance[0] * 100)
@@ -82,6 +94,7 @@ def main():
                 print(json.dumps(result))
                 return
 
+    print("No match found in any image.")
     result = {
         "success": False,
         "accuracy": None,
