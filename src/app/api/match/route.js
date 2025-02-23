@@ -68,7 +68,7 @@ export async function POST(req) {
         }
 
         const result = await new Promise((resolve, reject) => {
-            const pythonProcess = spawn("python", [scriptPath]);
+            const pythonProcess = spawn("python", [scriptPath], { maxBuffer: 1024 * 1024 * 10 }); // Increased buffer
 
             let scriptOutput = "";
             let scriptError = "";
@@ -82,6 +82,8 @@ export async function POST(req) {
             });
 
             pythonProcess.on("close", (code) => {
+                console.log("Raw Python Output:", scriptOutput);
+
                 if (code !== 0) {
                     console.error(`Python script error: ${scriptError}`);
                     return reject(new Error(`Python script exited with code ${code}: ${scriptError}`));
@@ -89,6 +91,7 @@ export async function POST(req) {
 
                 try {
                     scriptOutput = scriptOutput.trim();
+
                     if (!scriptOutput.startsWith("{")) {
                         console.error("Unexpected Python output:", scriptOutput);
                         return reject(new Error("Invalid JSON output from Python script"));
@@ -102,6 +105,7 @@ export async function POST(req) {
             });
         });
 
+        // Cleanup temporary images
         try {
             for (const file of await readdir(imagesDir)) {
                 await unlink(path.join(imagesDir, file));
@@ -114,8 +118,8 @@ export async function POST(req) {
         }
 
         console.log("Results =======> ", result);
-
         return NextResponse.json(result, { status: 200 });
+
     } catch (error) {
         console.error("Error in face matching API:", error);
         return NextResponse.json({ message: "An error occurred", success: false }, { status: 500 });
