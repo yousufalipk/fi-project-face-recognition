@@ -10,7 +10,7 @@ export async function POST(req) {
         console.log("==========> 111 ---[ Received POST request ]");
 
         const data = await req.formData();
-        console.log("==========> 111 ---[ Extracted formData ]");
+        console.log("==========> 111 ---[ Extracted formData ]", data);
 
         const file = data.get("file");
         const accounts = JSON.parse(data.get("accounts") || "[]");
