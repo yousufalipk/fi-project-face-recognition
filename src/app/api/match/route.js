@@ -6,12 +6,16 @@ import fetch from "node-fetch";
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
+    console.log("Received POST request for face matching.");
     try {
         const data = await req.formData();
+        console.log("Form data received:", data);
         const file = data.get("file");
         const accounts = JSON.parse(data.get("accounts") || "[]");
+        console.log("Accounts extracted:", accounts);
 
         if (!file) {
+            console.warn("No file uploaded.");
             return NextResponse.json({ message: "No file uploaded", success: false }, { status: 400 });
         }
 
@@ -22,7 +26,10 @@ export async function POST(req) {
 
         // Ensure directories exist
         for (const dir of [imagesDir, userImageDir]) {
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+                console.log("Created directory:", dir);
+            }
         }
 
         let index = 0;
@@ -33,6 +40,7 @@ export async function POST(req) {
 
             try {
                 const imagePath = path.join(imagesDir, `${index}.jpg`);
+                console.log(`Processing image ${index} from ${imageSrc}`);
 
                 if (imageSrc.startsWith("data:image")) {
                     const base64Data = imageSrc.split(",").pop();
@@ -42,13 +50,17 @@ export async function POST(req) {
                     await writeFile(imagePath, buffer);
                 } else {
                     const response = await fetch(imageSrc);
-                    if (!response.ok) continue;
+                    if (!response.ok) {
+                        console.warn(`Failed to fetch image from ${imageSrc}`);
+                        continue;
+                    }
 
                     const arrayBuffer = await response.arrayBuffer();
                     const userImageBuffer = Buffer.from(arrayBuffer);
                     await writeFile(imagePath, userImageBuffer);
                 }
 
+                console.log(`Saved image to ${imagePath}`);
                 index++;
             } catch (error) {
                 console.error(`Failed to process image for index ${index}:`, error);
@@ -58,15 +70,17 @@ export async function POST(req) {
         const uploadedBytes = await file.arrayBuffer();
         const uploadedBuffer = Buffer.from(uploadedBytes);
         await writeFile(userImagePath, uploadedBuffer);
+        console.log("User image uploaded successfully.");
 
         const scriptPath = path.join(process.cwd(), "scripts", "facenet_match.py");
+        console.log("Checking Python script at:", scriptPath);
 
-        // Check if Python and the script exist
         if (!fs.existsSync(scriptPath)) {
             console.error("Python script not found:", scriptPath);
             return NextResponse.json({ message: "Server error: Python script missing", success: false }, { status: 500 });
         }
 
+        console.log("Executing Python script...");
         const result = await new Promise((resolve, reject) => {
             const pythonProcess = spawn("python", [scriptPath], { maxBuffer: 1024 * 1024 * 10 }); // Increased buffer
 
@@ -75,10 +89,12 @@ export async function POST(req) {
 
             pythonProcess.stdout.on("data", (data) => {
                 scriptOutput += data.toString();
+                console.log("Python script output:", data.toString());
             });
 
             pythonProcess.stderr.on("data", (data) => {
                 scriptError += data.toString();
+                console.error("Python script error:", data.toString());
             });
 
             pythonProcess.on("close", (code) => {
@@ -106,6 +122,7 @@ export async function POST(req) {
         });
 
         // Cleanup temporary images
+        console.log("Cleaning up temporary images...");
         try {
             for (const file of await readdir(imagesDir)) {
                 await unlink(path.join(imagesDir, file));
@@ -119,7 +136,6 @@ export async function POST(req) {
 
         console.log("Results =======> ", result);
         return NextResponse.json(result, { status: 200 });
-
     } catch (error) {
         console.error("Error in face matching API:", error);
         return NextResponse.json({ message: "An error occurred", success: false }, { status: 500 });
