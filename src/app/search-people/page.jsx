@@ -48,47 +48,56 @@ const SearchPeoplePage = () => {
 
     const handleSearchAccount = async () => {
         try {
+            console.log("/////////////////*****=> Search started.");
             setLoading(true);
 
             let accounts = [];
-
             setResults([]);
 
             if (!searchTerm && !file) {
+                console.log("/////////////////*****=> Missing search term & file.");
                 toast.error('Username & Image is required!');
                 setProgress(100);
                 return;
             }
 
+            console.log("/////////////////*****=> Searching by username:", searchTerm);
             const response = await fetch(`/api/search?query=${searchTerm}`);
             const result = await response.json();
 
             if (!response.ok) {
+                console.error("/////////////////*****=> Error searching accounts!");
                 toast.error('Error searching accounts!');
                 return;
             }
 
+            console.log("/////////////////*****=> Accounts found from search:", result);
             accounts = [...result.facebookUsers, ...result.instagramUsers];
 
             const formData = new FormData();
             formData.append("file", file);
             formData.append("accounts", JSON.stringify(accounts));
 
+            console.log("/////////////////*****=> Sending data to /api/match...");
             const res = await fetch("/api/match", {
                 method: "POST",
                 body: formData,
             });
 
             if (!res.ok) {
+                console.error("/////////////////*****=> Error matching faces!");
                 toast.error('Error Matching Faces!');
                 setProgress(100);
                 return;
             }
 
             const data = await res.json();
+            console.log("/////////////////*****=> Match API response:", data);
 
             if (!data.success) {
                 try {
+                    console.log("/////////////////*****=> No match found, starting reverse face search...");
+
                     const formDataFile = new FormData();
                     formDataFile.append('file', file);
 
@@ -98,11 +107,13 @@ const SearchPeoplePage = () => {
                     });
 
                     if (!faceSearchResponse.ok) {
+                        console.error("/////////////////*****=> Error searching accounts with reverse face search.");
                         toast.error('Error searching accounts!');
                         return;
                     }
 
                     const result = await faceSearchResponse.json();
+                    console.log("/////////////////*****=> Reverse face search result:", result);
 
                     accounts = result.accounts;
 
@@ -110,39 +121,46 @@ const SearchPeoplePage = () => {
                     formData.append("file", file);
                     formData.append("accounts", JSON.stringify(accounts));
 
+                    console.log("/////////////////*****=> Sending reverse search results to /api/match...");
                     const res = await fetch("/api/match", {
                         method: "POST",
                         body: formData,
                     });
 
                     if (!res.ok) {
+                        console.error("/////////////////*****=> No match found after reverse search!");
                         toast.error('No match found!');
                         return;
                     }
 
                     const data = await res.json();
+                    console.log("/////////////////*****=> Final match response:", data);
 
                     if (data.success) {
+                        console.log("/////////////////*****=> Match found!");
                         toast.success('Match found!');
                         const parsedIndex = parseInt(data.file_name, 10);
                         setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
                     } else {
+                        console.error("/////////////////*****=> Match not found!");
                         toast.error('Match not found!');
                     }
                 } catch (error) {
-                    console.error('Error in face search request:', error);
+                    console.error("/////////////////*****=> Error in reverse face search request:", error);
                     toast.error('An unexpected error occurred!');
                 }
                 return;
             } else {
+                console.log("/////////////////*****=> Match found!");
                 toast.success('Match found!');
                 const parsedIndex = parseInt(data.file_name, 10);
                 setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
             }
         } catch (error) {
-            console.error('Internal Server Error!', error);
+            console.error("/////////////////*****=> Internal Server Error!", error);
             toast.error('Internal Server Error!');
         } finally {
+            console.log("/////////////////*****=> Search process completed.");
             setLoading(false);
             setTimeout(() => {
                 setLoading(false);
