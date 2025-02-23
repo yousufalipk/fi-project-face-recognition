@@ -24,7 +24,6 @@ const SearchPeoplePage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [results, setResults] = useState([]);
     const [recentResults, setRecentResults] = useState([]);
-    const [progress, setProgress] = useState(0);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -53,24 +52,20 @@ const SearchPeoplePage = () => {
     const handleSearchAccount = async () => {
         try {
             setLoading(true);
-            setProgress(0);
 
             setResults([]);
 
             if (!searchTerm && !file) {
                 toast.error('Username & Image is required!');
-                setProgress(100);
                 return;
             }
 
-            setProgress(10);
 
             const response = await fetch(`/api/search?query=${searchTerm}`);
             const result = await response.json();
 
             if (!response.ok) {
                 toast.error('Error searching accounts!');
-                setProgress(100);
                 return;
             }
 
@@ -80,7 +75,6 @@ const SearchPeoplePage = () => {
             formData.append("file", file);
             formData.append("accounts", JSON.stringify(accounts));
 
-            setProgress(30);
 
             const res = await fetch("/api/match", {
                 method: "POST",
@@ -89,14 +83,12 @@ const SearchPeoplePage = () => {
 
             if (!res.ok) {
                 toast.error('Error Matching Faces!');
-                setProgress(100);
                 return;
             }
 
             const data = await res.json();
 
             if (!data.success) {
-                setProgress(50);
 
                 try {
                     const formDataFile = new FormData();
@@ -109,16 +101,11 @@ const SearchPeoplePage = () => {
 
                     if (!faceSearchResponse.ok) {
                         toast.error('Error searching accounts!');
-                        setProgress(100);
                         return;
                     }
 
-                    setProgress(60);
-
                     const result = await faceSearchResponse.json();
                     accounts = result.accounts;
-
-                    setProgress(70);
 
                     const formData = new FormData();
                     formData.append("file", file);
@@ -129,50 +116,38 @@ const SearchPeoplePage = () => {
                         body: formData,
                     });
 
-                    setProgress(80);
 
                     if (!res.ok) {
                         toast.error('No match found!');
-                        setProgress(100);
                         return;
                     }
 
                     const data = await res.json();
 
-                    setProgress(90);
-
                     if (data.success) {
                         toast.success('Match found!');
                         const parsedIndex = parseInt(data.file_name, 10);
-                        console.log('parsedIndex', parsedIndex);
                         setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
-                        setProgress(100);
                     } else {
                         toast.error('Match not found!');
-                        setProgress(100);
                     }
                 } catch (error) {
                     console.error('Error in face search request:', error);
                     toast.error('An unexpected error occurred!');
-                    setProgress(100);
                 }
                 return;
             } else {
                 toast.success('Match found!');
                 const parsedIndex = parseInt(data.file_name, 10);
-                console.log('parsedIndex', parsedIndex);
                 setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
-                setProgress(100);
             }
         } catch (error) {
             console.error('Internal Server Error!', error);
             toast.error('Internal Server Error!');
-            setProgress(100);
         } finally {
             setLoading(false);
             setTimeout(() => {
                 setLoading(false);
-                setProgress(0);
             }, 2000);
         }
     };
