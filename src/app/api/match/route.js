@@ -23,7 +23,6 @@ export async function POST(req) {
         const userImageDir = path.join(baseDir, "userImage");
         const userImagePath = path.join(userImageDir, "userImage.jpg");
 
-        // Ensure directories exist
         [imagesDir, userImageDir].forEach(dir => {
             if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true });
@@ -32,7 +31,6 @@ export async function POST(req) {
         });
 
         let index = 0;
-
         for (const user of accounts) {
             let imageSrc = user.image?.uri || user?.profile_pic_url || user.image;
             if (!imageSrc) continue;
@@ -41,25 +39,18 @@ export async function POST(req) {
                 const imagePath = path.join(imagesDir, `${index}.jpg`);
                 console.log(`Fetching image ${index} from ${imageSrc}`);
 
-                if (imageSrc.startsWith("data:image")) {
-                    const base64Data = imageSrc.split(",").pop();
-                    if (!base64Data) continue;
-
-                    await writeFile(imagePath, Buffer.from(base64Data, "base64"));
-                } else {
-                    const response = await fetch(imageSrc);
-                    if (!response.ok) {
-                        console.warn(`Failed to fetch image from ${imageSrc}`);
-                        continue;
-                    }
-
-                    await writeFile(imagePath, Buffer.from(await response.arrayBuffer()));
+                const response = await fetch(imageSrc);
+                if (!response.ok) {
+                    console.warn(`Skipping image at index ${index} due to fetch failure.`);
+                    continue;
                 }
 
+                await writeFile(imagePath, Buffer.from(await response.arrayBuffer()));
                 console.log(`Saved image to ${imagePath}`);
                 index++;
             } catch (error) {
-                console.error(`Failed to process image at index ${index}:`, error);
+                console.error(`Skipping image at index ${index} due to error:`, error);
+                continue;
             }
         }
 
@@ -68,7 +59,6 @@ export async function POST(req) {
         console.log("User image uploaded successfully.");
 
         const scriptPath = path.join(process.cwd(), "scripts", "facenet_match.py");
-
         if (!fs.existsSync(scriptPath)) {
             console.error("Python script not found:", scriptPath);
             return NextResponse.json({ message: "Server error: Python script missing", success: false }, { status: 500 });
@@ -93,20 +83,16 @@ export async function POST(req) {
 
             pythonProcess.on("close", (code) => {
                 console.log("Raw Python Output:", scriptOutput);
-
                 if (code !== 0) {
                     console.error(`Python script error: ${scriptError}`);
                     return reject(new Error(`Python script exited with code ${code}: ${scriptError}`));
                 }
-
                 try {
                     scriptOutput = scriptOutput.trim();
-
                     if (!scriptOutput.startsWith("{")) {
                         console.error("Unexpected Python output:", scriptOutput);
                         return reject(new Error("Invalid JSON output from Python script"));
                     }
-
                     resolve(JSON.parse(scriptOutput));
                 } catch (parseError) {
                     console.error("JSON Parse Error:", parseError.message, "| Raw Output:", scriptOutput);
@@ -115,7 +101,6 @@ export async function POST(req) {
             });
         });
 
-        // Cleanup temporary images
         console.log("Cleaning up temporary images...");
         try {
             for (const file of await readdir(imagesDir)) {
@@ -130,7 +115,6 @@ export async function POST(req) {
 
         console.log("Results =======> ", result);
         return NextResponse.json(result, { status: 200 });
-
     } catch (error) {
         console.error("Error in face matching API:", error);
         return NextResponse.json({ message: "An error occurred", success: false }, { status: 500 });
