@@ -117,13 +117,9 @@ export async function POST(req) {
 
                 try {
                     scriptOutput = scriptOutput.trim();
-                    if (!scriptOutput.startsWith("{")) {
-                        console.error("==========> 111 ---[ Unexpected Python output: ]", scriptOutput);
-                        return reject(new Error("Invalid JSON output from Python script"));
-                    }
-
-                    console.log(`==========> 111 ---[ Parsed Python Output: ${scriptOutput} ]`);
-                    resolve(JSON.parse(scriptOutput));
+                    const parsedOutput = JSON.parse(scriptOutput);
+                    console.log(`==========> 111 ---[ Parsed Python Output: ${JSON.stringify(parsedOutput)} ]`);
+                    resolve(parsedOutput);
                 } catch (parseError) {
                     console.error("==========> 111 ---[ JSON Parse Error: ]", parseError.message, "| Raw Output:", scriptOutput);
                     reject(new Error("Invalid JSON output from Python script"));
