@@ -78,16 +78,22 @@ export async function POST(req) {
         console.log("==========> 111 ---[ Saved uploaded user image ]");
 
         const scriptPath = path.join(process.cwd(), "scripts", "facenet_match.py");
+        const pythonPath = path.join(process.cwd(), "venv", "bin", "python3");
 
         if (!fs.existsSync(scriptPath)) {
             console.error("==========> 111 ---[ Python script not found: ]", scriptPath);
             return NextResponse.json({ message: "Server error: Python script missing", success: false }, { status: 500 });
         }
 
-        console.log("==========> 111 ---[ Running Python script ]");
+        if (!fs.existsSync(pythonPath)) {
+            console.error("==========> 111 ---[ Python interpreter not found: ]", pythonPath);
+            return NextResponse.json({ message: "Server error: Virtual environment not found", success: false }, { status: 500 });
+        }
+
+        console.log("==========> 111 ---[ Running Python script using virtual environment ]");
 
         const result = await new Promise((resolve, reject) => {
-            const pythonProcess = spawn("python", [scriptPath]);
+            const pythonProcess = spawn(pythonPath, [scriptPath]);
 
             let scriptOutput = "";
             let scriptError = "";
