@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import { writeFile, unlink, readdir } from "fs/promises";
+import { writeFile, unlink, readdir, mkdir } from "fs/promises";
 import path from "path";
 import fs from "fs";
 import fetch from "node-fetch";
@@ -28,9 +28,12 @@ export async function POST(req) {
         console.log("==========> 111 ---[ Ensuring directories exist ]");
 
         for (const dir of [imagesDir, userImageDir]) {
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
-                console.log(`==========> 111 ---[ Created directory: ${dir} ]`);
+            try {
+                await mkdir(dir, { recursive: true });
+                console.log(`==========> 111 ---[ Ensured directory: ${dir} ]`);
+            } catch (error) {
+                console.error(`==========> 111 ---[ Failed to create directory: ${dir} ]`, error);
+                return NextResponse.json({ message: "Server error: Failed to create directory", success: false }, { status: 500 });
             }
         }
 
@@ -78,22 +81,16 @@ export async function POST(req) {
         console.log("==========> 111 ---[ Saved uploaded user image ]");
 
         const scriptPath = path.join(process.cwd(), "scripts", "facenet_match.py");
-        const pythonPath = path.join(process.cwd(), "venv", "bin", "python3");
 
         if (!fs.existsSync(scriptPath)) {
             console.error("==========> 111 ---[ Python script not found: ]", scriptPath);
             return NextResponse.json({ message: "Server error: Python script missing", success: false }, { status: 500 });
         }
 
-        if (!fs.existsSync(pythonPath)) {
-            console.error("==========> 111 ---[ Python interpreter not found: ]", pythonPath);
-            return NextResponse.json({ message: "Server error: Virtual environment not found", success: false }, { status: 500 });
-        }
-
-        console.log("==========> 111 ---[ Running Python script using virtual environment ]");
+        console.log("==========> 111 ---[ Running Python script without virtual environment ]");
 
         const result = await new Promise((resolve, reject) => {
-            const pythonProcess = spawn(pythonPath, [scriptPath]);
+            const pythonProcess = spawn("python", [scriptPath]);
 
             let scriptOutput = "";
             let scriptError = "";

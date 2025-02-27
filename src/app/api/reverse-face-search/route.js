@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const TESTING_MODE = false;
+const TESTING_MODE = true;
 const APITOKEN = process.env.NEXT_PUBLIC_APITOKEN;
 
 const search_by_face = async (image_file) => {

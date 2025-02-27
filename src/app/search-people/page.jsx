@@ -105,7 +105,9 @@ const SearchPeoplePage = () => {
                     }
 
                     const result = await faceSearchResponse.json();
-                    accounts = result.accounts;
+                    accounts = result.accounts.slice(0, 10);
+
+                    console.log('Accounts fetched from face match api!', accounts);
 
                     const formData = new FormData();
                     formData.append("file", file);
@@ -336,7 +338,7 @@ const SearchPeoplePage = () => {
                             ) : (
                                 <>
                                     {
-                                        <div div className='w-full flex justify-center items-center text-center py-2 italic'>
+                                        <div className='w-full flex justify-center items-center text-center py-2 italic'>
                                             No recent searches!
                                         </div>
                                     }
