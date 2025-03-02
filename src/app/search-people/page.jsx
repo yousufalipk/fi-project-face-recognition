@@ -24,6 +24,7 @@ const SearchPeoplePage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [results, setResults] = useState([]);
     const [recentResults, setRecentResults] = useState([]);
+    const [progress, setProgress] = useState(0);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -52,20 +53,24 @@ const SearchPeoplePage = () => {
     const handleSearchAccount = async () => {
         try {
             setLoading(true);
+            setProgress(10);
 
             setResults([]);
 
             if (!searchTerm && !file) {
                 toast.error('Username & Image is required!');
+                setProgress(0);
                 return;
             }
 
-
             const response = await fetch(`/api/search?query=${searchTerm}`);
+            setProgress(30);
+
             const result = await response.json();
 
             if (!response.ok) {
                 toast.error('Error searching accounts!');
+                setProgress(0);
                 return;
             }
 
@@ -75,20 +80,23 @@ const SearchPeoplePage = () => {
             formData.append("file", file);
             formData.append("accounts", JSON.stringify(accounts));
 
-
             const res = await fetch("/api/match", {
                 method: "POST",
                 body: formData,
             });
 
+            setProgress(50);
+
             if (!res.ok) {
                 toast.error('Error Matching Faces!');
+                setProgress(0);
                 return;
             }
 
             const data = await res.json();
 
             if (!data.success) {
+                setProgress(60);
 
                 try {
                     const formDataFile = new FormData();
@@ -99,15 +107,18 @@ const SearchPeoplePage = () => {
                         body: formDataFile,
                     });
 
+                    setProgress(70);
+
                     if (!faceSearchResponse.ok) {
                         toast.error('Error searching accounts!');
+                        setProgress(0);
                         return;
                     }
 
                     const result = await faceSearchResponse.json();
                     accounts = result.accounts.slice(0, 10);
 
-                    console.log('Accounts fetched from face match api!', accounts);
+                    console.log('Accounts fetched from face match API!', accounts);
 
                     const formData = new FormData();
                     formData.append("file", file);
@@ -118,9 +129,11 @@ const SearchPeoplePage = () => {
                         body: formData,
                     });
 
+                    setProgress(80);
 
                     if (!res.ok) {
                         toast.error('No match found!');
+                        setProgress(0);
                         return;
                     }
 
@@ -130,35 +143,50 @@ const SearchPeoplePage = () => {
                         toast.success('Match found!');
                         const parsedIndex = parseInt(data.file_name, 10);
                         setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
+                        setProgress(100);
                     } else {
                         toast.error('Match not found!');
+                        setProgress(0);
                     }
                 } catch (error) {
                     console.error('Error in face search request:', error);
                     toast.error('An unexpected error occurred!');
+                    setProgress(0);
                 }
                 return;
             } else {
                 toast.success('Match found!');
                 const parsedIndex = parseInt(data.file_name, 10);
                 setResults((prevResults) => [...prevResults, accounts[parsedIndex]]);
+                setProgress(100);
             }
         } catch (error) {
             console.error('Internal Server Error!', error);
             toast.error('Internal Server Error!');
+            setProgress(0);
         } finally {
             setLoading(false);
             setTimeout(() => {
                 setLoading(false);
+                setProgress(0);
             }, 2000);
         }
     };
+
 
 
     return (
         <div className='w-full h-[100vh] bg-[#111827] flex flex-col justify-start items-center text-[#D1D5DB] overflow-x-hidden overflow-y-scroll gap-5'>
             <div className='w-full h-[10vh]'>
                 <Navbar />
+            </div>
+
+            {/* Loader */}
+            <div className="fixed top-[10vh] left-0 w-full h-1 bg-transparent z-50">
+                <div
+                    className="h-full bg-gradient-to-r from-teal-400 to-blue-600 transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                ></div>
             </div>
 
             <div className='w-full h-[10vh] flex justify-center items-end'>
