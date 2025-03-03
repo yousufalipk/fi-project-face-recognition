@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 
-const apiKey = process.env.RAPIDAPI_KEY;
+const apiKey1 = process.env.RAPIDAPI_KEY;
+const apiKey2 = process.env.INSTAGRAM_KEY;
 
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);
         const query = searchParams.get("query") || "";
 
-        if (!apiKey) {
+        if (!apiKey1 || !apiKey2) {
             return NextResponse.json({ error: "Missing API Key" }, { status: 500 });
         }
 
@@ -18,7 +19,7 @@ export async function GET(request) {
             {
                 headers: {
                     "x-rapidapi-host": "facebook-pages-scraper2.p.rapidapi.com",
-                    "x-rapidapi-key": apiKey,
+                    "x-rapidapi-key": apiKey1,
                 },
             }
         );
@@ -29,7 +30,7 @@ export async function GET(request) {
             {
                 headers: {
                     "x-rapidapi-host": "social-api4.p.rapidapi.com",
-                    "x-rapidapi-key": apiKey,
+                    "x-rapidapi-key": apiKey2,
                 },
             }
         );
