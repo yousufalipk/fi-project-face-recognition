@@ -28,7 +28,7 @@ export async function GET(request) {
             `https://instagram-scraper-api2.p.rapidapi.com/v1/search_users?search_query=${query}`,
             {
                 headers: {
-                    "x-rapidapi-host": "instagram-scraper-api2.p.rapidapi.com",
+                    "x-rapidapi-host": "social-api4.p.rapidapi.com",
                     "x-rapidapi-key": apiKey,
                 },
             }
